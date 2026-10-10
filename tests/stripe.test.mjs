@@ -43,6 +43,7 @@ test('checkout uses trusted public return URLs, a fixed price and retry idempote
   assert.equal(form.get('success_url'), 'https://demo.example.com/?checkout=success&session_id={CHECKOUT_SESSION_ID}#/');
   assert.equal(form.get('cancel_url'), 'https://demo.example.com/?checkout=cancelled#/');
   assert.equal(form.get('line_items[0][price]'), env.STRIPE_PRICE_ID);
+  assert.equal(form.has('payment_method_types[0]'), false);
   assert.equal(posts[0].headers['Idempotency-Key'], posts[1].headers['Idempotency-Key']);
 });
 test('reject foreign origins, wrong methods, malformed attempts and session IDs', async () => {

@@ -62,7 +62,7 @@ export async function handleStripe(req, env) {
       const attempt = req.headers.get('X-Checkout-Attempt') || '';
       if (!/^[a-f0-9-]{36}$/i.test(attempt)) return json({ error: 'Invalid checkout attempt.' }, 400);
       await price(env);
-      const form = new URLSearchParams({ mode: 'subscription', 'line_items[0][price]': env.STRIPE_PRICE_ID, 'line_items[0][quantity]': '1', 'payment_method_types[0]': 'card', 'metadata[commons_demo]': 'true', 'subscription_data[metadata][commons_demo]': 'true', success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}#/`, cancel_url: `${origin}/?checkout=cancelled#/`, 'custom_text[submit][message]': 'Commons demo only. No real payment or paid account access.' });
+      const form = new URLSearchParams({ mode: 'subscription', 'line_items[0][price]': env.STRIPE_PRICE_ID, 'line_items[0][quantity]': '1', 'metadata[commons_demo]': 'true', 'subscription_data[metadata][commons_demo]': 'true', success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}#/`, cancel_url: `${origin}/?checkout=cancelled#/`, 'custom_text[submit][message]': 'Commons demo only. No real payment or paid account access.' });
       const session = await stripe(env, 'checkout/sessions', form, attempt);
       if (session.livemode !== false || !session.id?.startsWith('cs_test_') || !session.url || new URL(session.url).origin !== 'https://checkout.stripe.com') throw Error('upstream');
       return json({ url: session.url });
