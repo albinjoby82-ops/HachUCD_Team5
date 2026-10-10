@@ -1,0 +1,4 @@
+Date,Item,Total cost,Department,Type,Status,Receipt,Project,Reference
+2026-09-03,Chassis materials,120,Mechanical,expense,paid,yes,Chassis,BK-001
+2026-09-04,Sensor order,45.50,Electrical,expense,paid,no,Electronics,BK-002
+2026-09-12,Workshop supplies,18.50,Shared,expense,paid,,Build,SS-003

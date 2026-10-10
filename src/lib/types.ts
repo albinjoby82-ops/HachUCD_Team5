@@ -100,6 +100,42 @@ export interface ImportRecord {
   byCategory: Record<string, number>;
 }
 
+export type FinanceKind = 'expense' | 'income' | 'refund' | 'transfer';
+export interface FinanceTransaction {
+  id: string;
+  date: string;
+  description: string;
+  amountCents: number;
+  currency: Currency;
+  dept: string;
+  category: string;
+  kind: FinanceKind;
+  reference: string;
+  receipt: 'unknown' | 'present' | 'missing';
+  project: string;
+  requestId?: string;
+  importId: string;
+  sourceRow: number;
+  detailsHistory?: { at: number; by: string; before: FinanceTransactionDetails; after: FinanceTransactionDetails }[];
+}
+export type FinanceTransactionDetails = Pick<FinanceTransaction, 'dept' | 'category' | 'project' | 'receipt'>;
+export interface FinanceImportRecord {
+  id: string;
+  fingerprint: string;
+  file: string;
+  at: number;
+  by: string;
+  source: 'bank' | 'sheet';
+  from: string;
+  through: string;
+  read: number;
+  saved: number;
+  excluded: number;
+  linked: number;
+  baseline: 'keep' | 'replace';
+  previousBaseSpend?: Record<string, number>;
+}
+
 export interface Org {
   id: string;
   name: string;
@@ -118,6 +154,8 @@ export interface Org {
   clusterId: string | null;
   imports: ImportRecord[];
   inventoryImports?: InventoryImportRecord[];
+  financeTransactions?: FinanceTransaction[];
+  financeImports?: FinanceImportRecord[];
   seq: number;
   logoColor: string;
   createdAt: number;

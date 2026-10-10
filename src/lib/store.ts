@@ -53,7 +53,7 @@ interface UI {
   orgs: boolean;
   tour: boolean;
   borrow: { orgId: string; itemId: string } | null;
-  finTab: 'overview' | 'budgets' | 'import';
+  finTab: 'overview' | 'budgets' | 'import' | 'transactions';
   prefill: boolean;
   reqFilter: 'wait' | 'mine' | 'all';
   set:(p: Partial<Omit<UI, 'set' | 'say'>>) => void;
@@ -68,8 +68,8 @@ export const useUI = create<UI>()(set => ({
 }));
 export const say = (m: string) => useUI.getState().say(m);
 
-/** Inventory transactions are all-or-nothing in this local demo, including storage failures. */
-export function saveInventory(orgId: string, change: (org: Org) => void) {
+/** Organisation transactions are all-or-nothing in this local demo, including storage failures. */
+export function saveOrganisation(orgId: string, change: (org: Org) => void) {
   const before = useStore.getState();
   const next = structuredClone(before.orgs);
   const org = next.find(o => o.id === orgId);
@@ -77,7 +77,7 @@ export function saveInventory(orgId: string, change: (org: Org) => void) {
   change(org);
   // Persist before publishing to subscribers: a full/disabled store must not look like success.
   const name = useStore.persist.getOptions().name;
-  if (!name) throw new Error('Inventory storage is not configured.');
+  if (!name) throw new Error('Browser storage is not configured.');
   const state = { ...before, orgs: next };
   const payload = JSON.stringify({ state, version: useStore.persist.getOptions().version ?? 0 });
   try { localStorage.setItem(name, payload); }
@@ -91,3 +91,5 @@ export function saveInventory(orgId: string, change: (org: Org) => void) {
     }
   }
 }
+
+export const saveInventory = saveOrganisation;

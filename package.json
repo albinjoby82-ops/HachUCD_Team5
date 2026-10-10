@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
-    "test:inventory": "node --import ./tests/register-ts.mjs --test tests/inventory.test.mjs"
+    "test:inventory": "node --import ./tests/register-ts.mjs --test tests/inventory.test.mjs",
+    "test:finance": "node --import ./tests/register-ts.mjs --test tests/finance.test.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

@@ -6,6 +6,7 @@ import { DAY_MS, plural } from '../../lib/format';
 import { Bar, Chip, Section } from '../../components/ui';
 import { useCtx } from './ctx';
 import type { Org, PurchaseRequest } from '../../lib/types';
+import { financeTotals, receiptFollowups } from '../../lib/finance';
 
 export function ReqRow({ r, org, m, showCost }: { r: PurchaseRequest; org: Org; m: (n: number) => string; showCost?: boolean }) {
   const set = useUI(s => s.set);
@@ -42,7 +43,7 @@ export function Home() {
     { done: org.requests.length > 0, text: 'Make the first purchase request', go: () => go('/app/new'), on: mods.finance },
     { done: org.items.length > 0, text: 'Add something to inventory', go: () => go('/app/inventory'), on: mods.inventory },
     { done: !!org.clusterId, text: 'Join a cluster to borrow from nearby teams', go: () => go('/app/cluster'), on: mods.cluster },
-    { done: org.imports.length > 0, text: 'Import a bank export', go: () => { ui.set({ finTab: 'import' }); go('/app/finance'); }, on: mods.finance },
+    { done: !!org.financeImports?.length, text: 'Catch up your team finances', go: () => { ui.set({ finTab: 'import' }); go('/app/finance'); }, on: mods.finance },
   ].filter(c => c.on !== false);
   const showChecklist = top && !org.demo && checklist.some(c => !c.done);
 
@@ -57,8 +58,9 @@ export function Home() {
     : stock ? `There are ${stock.qty} ${stock.name} in ${stock.loc}. Check there before requesting more.` : '';
 
   const attention = top ? [
-    ...(mods.finance && !org.imports.length ? [{ text: 'Bank export not imported yet', sub: 'Reconcile this month’s spending', act: 'Import', go: () => { ui.set({ finTab: 'import' }); go('/app/finance'); } }] : []),
-    ...missing.map(r => ({ text: 'Missing receipt · ' + r.item, sub: nameOf(org, r.byId) + ' · ' + m(r.cost), act: 'Chase', go: () => { mut(o => { const x = o.requests.find(y => y.id === r.id)!; x.receipt = true; log(x, 'Asked ' + nameOf(org, r.byId) + ' for the receipt'); }); ui.say('Reminder sent to ' + nameOf(org, r.byId) + '.'); } })),
+    ...(mods.finance && !org.financeImports?.length ? [{ text: 'Joining mid-season?', sub: 'Bring in your bank export or team spending sheet', act: 'Catch up', go: () => { ui.set({ finTab: 'import' }); go('/app/finance'); } }] : []),
+    ...(mods.finance && receiptFollowups(org, depts).length ? [{ text: `${receiptFollowups(org, depts).length} imported payments need a receipt check`, sub: 'Review the records from your catch-up', act: 'Review', go: () => { ui.set({ finTab: 'transactions' }); go('/app/finance'); } }] : []),
+    ...missing.map(r => ({ text: 'Missing receipt · ' + r.item, sub: nameOf(org, r.byId) + ' · ' + m(r.cost), act: 'Log follow-up', go: () => { mut(o => { const x = o.requests.find(y => y.id === r.id)!; log(x, 'Receipt follow-up recorded for ' + nameOf(org, r.byId)); }); ui.say('Follow-up recorded. The receipt is still missing; no message was sent.'); } })),
     ...flagged.map(r => ({ text: r.flag!, sub: r.id + ' · ' + nameOf(org, r.byId), act: 'View', go: () => ui.set({ reqId: r.id }) })),
     ...overdue.map(i => ({ text: i.name + ' is overdue', sub: 'With ' + (i.holderName || nameOf(org, i.holderId)), act: 'View', go: () => go('/app/inventory') })),
   ] : [];
@@ -101,7 +103,7 @@ export function Home() {
             {!held.length && <div className="muted" style={{ padding: 14 }}>You’re not holding anything.</div>}
           </Section>}
           {mods.finance && depts.length > 0 && <section className="card pad stack-s" style={{ gap: 16 }}>
-            <div><div className="small muted">{top ? org.name : myDept + ' department'}</div><div className="big">{m(tb - ts)}</div><div className="small muted">left of {m(tb)} budget · not a bank balance</div></div>
+            <div><div className="small muted">{top ? org.name : myDept + ' department'}</div><div className="big">{m(tb - ts)}</div><div className="small muted">left of {m(tb)} allocated budget · includes approved commitments · not a bank balance</div><div className="small muted">{m(depts.reduce((n, d) => n + financeTotals(org, d).paid, 0))} spent · {m(depts.reduce((n, d) => n + financeTotals(org, d).committed, 0))} approved but unpaid</div>{!!org.financeImports?.length && <div className="small muted">Financial history imported · latest file through {org.financeImports[0].through}</div>}</div>
             {top && bars.map(x => <div key={x.d} className="stack-s" style={{ gap: 6 }}>
               <div className="hstack" style={{ justifyContent: 'space-between', fontSize: 14 }}><span>{x.d}{x.b && x.sp / x.b > 0.85 ? ' · close to budget' : ''}</span><span className="muted">{m(x.sp)} of {m(x.b)}</span></div>
               <Bar used={x.sp} total={x.b} color={deptColor(org, x.d)} /></div>)}

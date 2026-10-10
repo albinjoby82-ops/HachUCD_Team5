@@ -211,6 +211,13 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .typebtn.on { border-color: var(--p-h); background: var(--p100); }
 
 .inventory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px; }
+.finance-source { display: flex; flex-direction: column; gap: 10px; text-align: left; cursor: pointer; border: 2px solid transparent; color: inherit; }
+.finance-source.selected { border-color: var(--p); background: var(--p100); }
+.finance-review table { min-width: 1120px; }
+.finance-review td { vertical-align: top; min-width: 140px; }
+.finance-review td:first-child { min-width: 70px; }
+.finance-review td:last-child { min-width: 230px; }
+.finance-review .input { padding: 7px; font-size: 13px; margin: 3px 0; }
 .inventory-table { overflow: auto; max-height: 48vh; border: 1px solid var(--border); border-radius: 12px; }
 .inventory-preview { min-width: 1080px; }
 .inventory-preview .input { min-width: 90px; padding: 8px; font-size: 13px; }

@@ -24,7 +24,7 @@ The org chart isn't a picture. **It is the engine.** It decides who approves who
 |---|---|
 | **Team structure** | A drag-and-drop flowchart builder. A new team registers, picks a template or starts blank, builds its hierarchy, invites people into boxes, and gets a live workspace. |
 | **Purchase requests** | Requests flow up the chart: approve, pass up, send back or reject, with a full activity trail. A "before you buy" check searches your inventory and your cluster. Receipts are read by (simulated) OCR, and bought items are added to inventory. |
-| **Finance** | Budgets by department (informational, never blocking), spend tracking, and bank CSV import. Known payees match by rule, unclear lines get an AI suggestion with a confidence score, low-confidence lines go to review, and anomalies are flagged (duplicates, refunds, unusual amounts, missing receipts, spend with no request). |
+| **Finance** | Mid-season catch-up from bank CSVs or spending sheets: confirm mappings and formats, review departments, duplicates and matching requests, preview budgets and save. A transaction ledger updates paid spending, commitments, income, refunds and budget context across the workspace. Receipt checks and later overlapping imports are supported. No AI service is used by the catch-up flow. |
 | **Inventory** | What the team owns, where it is, who holds it, and its condition. Items are added by hand, CSV import or from bought requests. |
 | **Cluster** | Nearby teams share chosen items. Borrow requests are approved by the owning department's lead, and the system tracks which person from which team has what, including overdue returns. |
 | **Onboarding & access** | Landing, sign-up, org creation, module toggles, invite codes, a join flow that shows your approval route, a multi-org switcher, settings, and a role switcher for demos. |
@@ -38,7 +38,7 @@ The org chart isn't a picture. **It is the engine.** It decides who approves who
 
 ### Not in scope
 
-Live bank connections, real payments, native mobile apps, email delivery, Google sign-in and billing. The OCR and AI categoriser are simulated so the demo runs offline, and are labelled that way in the UI.
+Live bank connections, real payments, native mobile apps, email delivery, Google sign-in and billing. Receipt OCR is simulated. Finance catch-up is deterministic and reviewable; the legacy simulated AI categoriser is no longer used by that flow.
 
 ## How it's built
 

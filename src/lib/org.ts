@@ -1,5 +1,6 @@
 // Business rules ported from the design handoff. Everything here is derived from the chart.
 import type { Org, OrgNode, Person, PurchaseRequest, ReqStatus } from './types';
+import { financeTotals } from './finance';
 
 export const DEPT_PALETTE = ['#ff6b5c', '#f5a623', '#12b8a0', '#3d8bfd', '#e255a1', '#8a6cff', '#2fb36d', '#ff8a3d'];
 export const SHARED = 'Shared';
@@ -108,8 +109,7 @@ export function canSee(s: Structure, r: PurchaseRequest, me: string) {
   return isOpen(r) ? c.indexOf(r.holderId || '') >= i : true;
 }
 
-export const spend = (o: Org, dept: string) =>
-  (o.baseSpend[dept] || 0) + o.requests.filter(r => r.dept === dept && (r.status === 'approved' || r.status === 'bought')).reduce((a, r) => a + r.cost, 0);
+export const spend = (o: Org, dept: string) => financeTotals(o, dept).used;
 
 export const tokens = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 4 || /^m\d+$/.test(t));
 

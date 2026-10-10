@@ -1,192 +1,111 @@
-import { useMemo, useState } from 'react';
-import { useUI } from '../../lib/store';
-import { deptColor, deptNames, isOpen, nameOf, spend } from '../../lib/org';
-import { analyse, categorise, CATEGORIES, FIELDS, guessMapping, parseCsv, sampleCsv, THRESHOLD, toLines, type Categorised, type Mapping } from '../../lib/csv';
-import { uid, when } from '../../lib/format';
-import { Bar, Chip, Pills, Section, Steps } from '../../components/ui';
+import { useState } from 'react';
+import { saveOrganisation, useUI } from '../../lib/store';
+import { deptColor, deptNames, isTop, spend } from '../../lib/org';
+import { financeTotals, moneyCents, receiptFollowups, updateFinanceDetails } from '../../lib/finance';
+import { when } from '../../lib/format';
+import { Bar, Dialog, Pills } from '../../components/ui';
 import { useCtx } from './ctx';
+import { FinanceCatchup } from './FinanceCatchup';
+import type { FinanceTransaction, FinanceTransactionDetails } from '../../lib/types';
 
 export function Finance() {
+  const { org, me } = useCtx();
   const tab = useUI(s => s.finTab), set = useUI(s => s.set);
-  return (
-    <div className="stack-s fade" style={{ gap: 18 }}>
-      <Pills value={tab} options={[['overview', 'Overview'], ['budgets', 'Budgets'], ['import', 'Bank import']]} onChange={v => set({ finTab: v })} />
-      {tab === 'overview' && <Overview />}
-      {tab === 'budgets' && <Budgets />}
-      {tab === 'import' && <Import />}
-    </div>
-  );
+  return <div className="stack-s fade" style={{ gap: 18 }}>
+    <Pills value={tab} options={[[ 'overview', 'Overview'], ['transactions', 'Transactions'], ['budgets', 'Budgets'], ['import', 'Catch up / import']]} onChange={v => set({ finTab: v })} />
+    {tab === 'overview' && <Overview />}{tab === 'budgets' && <Budgets />}{tab === 'transactions' && <Transactions />}{tab === 'import' && <FinanceCatchup key={org.id + me} />}
+  </div>;
 }
 
 function Overview() {
   const { org, top, myDept, m } = useCtx();
   const depts = top ? deptNames(org) : myDept ? [myDept] : [];
-  const bars = depts.map(d => ({ d, sp: spend(org, d), b: org.budgets[d] || 0 }));
-  const tb = bars.reduce((a, x) => a + x.b, 0), ts = bars.reduce((a, x) => a + x.sp, 0);
-  const close = bars.filter(b => b.b && b.sp / b.b > 0.85).map(b => b.d);
-  const last = org.imports[0];
-  // Summary is a template over computed numbers; a model may rephrase it but never computes.
-  const summary = tb ? `Spending is at ${Math.round((ts / tb) * 100)}% of budget across ${bars.length} ${bars.length === 1 ? 'department' : 'departments'}. ` +
-    (close.length ? `${close.join(' and ')} ${close.length > 1 ? 'are' : 'is'} close to budget.` : 'No department is close to its budget.') +
-    (last ? ` The last bank import had ${last.rows} lines; ${last.matched} matched approved requests and ${last.flags} were flagged.` : '') : 'Set budgets to see how spending is tracking.';
-  const missing = org.requests.filter(r => r.status === 'bought' && !r.receipt && depts.includes(r.dept));
-  const flags = [
-    ...(!org.imports.length ? [{ s: 'pending', text: 'This month’s bank export isn’t imported yet' }] : []),
-    ...missing.map(r => ({ s: 'flag', text: `Missing receipt: ${r.item} (${nameOf(org, r.byId)})` })),
-    ...org.requests.filter(r => r.flag && isOpen(r) && depts.includes(r.dept)).map(r => ({ s: 'flag', text: r.flag! })),
-  ];
-  const cats = last ? Object.entries(last.byCategory).sort((a, b) => b[1] - a[1]) : [];
-  const maxCat = cats[0]?.[1] || 1;
-  return (
-    <div className="g2e">
-      <section className="card pad stack-s" style={{ gap: 16 }}>
-        <div className="b800">Spend by department</div>
-        {bars.map(x => <div key={x.d} className="stack-s" style={{ gap: 6 }}>
-          <div className="hstack" style={{ justifyContent: 'space-between', fontSize: 14 }}><span>{x.d}{x.b && x.sp / x.b > 0.85 ? ' · close to budget' : ''}</span><span className="muted">{m(x.sp)} of {m(x.b)}</span></div>
-          <Bar used={x.sp} total={x.b} color={deptColor(org, x.d)} /></div>)}
-        <div className="inset stack-s" style={{ gap: 4 }}><span className="tiny b800 muted">AI summary · written from computed totals</span><span style={{ fontSize: 14 }}>{summary}</span></div>
-        <div className="tiny muted">Spent = earlier spend this term + approved and bought requests. Budgets guide decisions; they never block a request.</div>
-      </section>
-      <div className="stack">
-        <Section title="Flags">
-          {flags.map((f, i) => <div key={i} className="row" style={{ padding: '12px 14px' }}><Chip s={f.s} /><div className="grow" style={{ fontSize: 14 }}>{f.text}</div></div>)}
-          {!flags.length && <div className="muted" style={{ padding: 14 }}>No flags right now.</div>}
-        </Section>
-        {last && <section className="card pad stack-s">
-          <div className="hstack"><span className="b800">Last import</span><span className="small muted">{last.file} · {when(last.at)}</span></div>
-          <div className="small muted">{last.rows} lines · {m(last.moneyOut)} out · {m(last.moneyIn)} in · {last.rules} by rules · {last.ai} AI · {last.reviewed} reviewed by you</div>
-          {cats.slice(0, 6).map(([c, v]) => <div key={c} className="stack-s" style={{ gap: 4 }}><div className="hstack" style={{ justifyContent: 'space-between', fontSize: 13 }}><span>{c}</span><span className="muted">{m(v)}</span></div><Bar used={v} total={maxCat} color="#7c4dff" /></div>)}
-        </section>}
-      </div>
+  const bars = depts.map(d => ({ d, ...financeTotals(org, d), budget: org.budgets[d] || 0 }));
+  const sum = (field: 'paid' | 'committed' | 'income' | 'used') => bars.reduce((n, b) => n + b[field], 0);
+  const allocated = bars.reduce((n, b) => n + b.budget, 0);
+  const last = org.financeImports?.[0];
+  const transactions = (org.financeTransactions || []).filter(t => depts.includes(t.dept));
+  const receiptChecks = receiptFollowups(org, depts);
+  const linked = new Set(transactions.map(t => t.requestId));
+  const missingRequests = org.requests.filter(r => r.status === 'bought' && !r.receipt && depts.includes(r.dept) && !linked.has(r.id));
+  const categories: Record<string, number> = {};
+  transactions.filter(t => t.kind === 'expense' || t.kind === 'refund').forEach(t => { categories[t.category] = (categories[t.category] || 0) - t.amountCents; });
+  const sorted = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+  return <div className="stack-s" style={{ gap: 18 }}>
+    {top && !last && <section className="callout-p stack-s"><div className="title20">Already building? Bring your finances with you.</div><div>Import a bank CSV or your team’s spending sheet. Review once, then see the same figures on Home, budgets and purchase approvals.</div><button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => useUI.getState().set({ finTab: 'import' })}>Catch up my team</button></section>}
+    <div className="g4">{[[m(sum('paid')), 'Spent, net of refunds'], [m(sum('committed')), 'Approved, not yet paid'], [m(allocated - sum('used')), 'Allocated budget remaining'], [m(sum('income')), 'Imported income']].map(([value, label]) => <div className="card stat" key={label}><div className="v">{value}</div><div className="small muted">{label}</div></div>)}</div>
+    <div className="small muted">Remaining budget includes approved commitments and is not a bank balance. Income does not automatically increase budget. {top && org.termBudget !== allocated ? `${m(org.termBudget - allocated)} of the team budget is unallocated.` : ''}</div>
+    <div className="g2">
+      <section className="card pad stack-s" style={{ gap: 16 }}><div className="b800">Your season by department</div>{bars.map(b => <div key={b.d} className="stack-s" style={{ gap: 6 }}><div className="hstack" style={{ justifyContent: 'space-between' }}><b>{b.d}</b><span className="small">{m(b.used)} of {m(b.budget)} used{b.used > b.budget ? ' · over budget' : b.budget > 0 && b.used / b.budget > .85 ? ' · close to budget' : ''}</span></div><Bar used={Math.max(0, b.used)} total={b.budget} color={deptColor(org, b.d)} /><div className="small muted">{m(b.paid)} spent · {m(b.committed)} approved but unpaid</div></div>)}<div className="inset small">Calculated from earlier spending, imported payments and purchase requests. Linked payments are counted once. Refunds reduce spending; transfers do not use budget.</div></section>
+      <section className="card pad stack-s"><div className="b800">What still needs your attention</div>{!receiptChecks.length && !missingRequests.length && <div className="small muted">No missing-receipt checks from the records available.</div>}{receiptChecks.slice(0, 6).map(t => <div className="inset small" key={t.id}>Check receipt · {t.description} · {m(-t.amountCents / 100)} · {t.dept}</div>)}{missingRequests.slice(0, 6).map(r => <button className="btn btn-ghost" key={r.id} onClick={() => useUI.getState().set({ reqId: r.id })}>Missing receipt · {r.item}</button>)}{receiptChecks.length > 0 && <button className="btn btn-secondary" onClick={() => useUI.getState().set({ finTab: 'transactions' })}>Review transactions ({receiptChecks.length} receipt checks)</button>}<div className="small muted">A CSV’s “receipt present” flag is a declaration, not an uploaded receipt.</div></section>
     </div>
-  );
+    {last && <section className="card pad stack-s"><div className="hstack"><b>Latest catch-up</b><span className="small muted">{last.file} · {when(last.at)}</span></div><div>{last.saved} transactions saved · {last.excluded} excluded · {last.linked} requests linked</div><div className="small muted">Imported dates: {last.from} to {last.through}. This describes the file’s records, not a guarantee that every team payment is included.</div>{top && <button className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} onClick={() => useUI.getState().set({ finTab: 'import' })}>Add the next export</button>}</section>}
+    {!!sorted.length && <section className="card pad stack-s"><b>Imported spending by category, net of refunds</b>{sorted.map(([category, cents]) => <div className="hstack" key={category} style={{ justifyContent: 'space-between' }}><span>{category}</span><b>{m(cents / 100)}</b></div>)}</section>}
+    {!!org.imports.length && <details className="card pad"><summary>Earlier demo bank summaries ({org.imports.length})</summary><p className="small muted">The old importer stored summaries without transaction records. Those summaries are not added to spending. Upload the original CSV through Catch up to reconcile them.</p></details>}
+  </div>;
+}
+
+function Transactions() {
+  const { org, top, myDept, m } = useCtx();
+  const [query, setQuery] = useState(''), [department, setDepartment] = useState('all'), [receiptOnly, setReceiptOnly] = useState(false);
+  const [page, setPage] = useState(0);
+  const [editing, setEditing] = useState<FinanceTransaction>();
+  const depts = top ? deptNames(org) : myDept ? [myDept] : [];
+  const checks = new Set(receiptFollowups(org, depts).map(t => t.id));
+  const list = (org.financeTransactions || []).filter(t => depts.includes(t.dept) && (department === 'all' || t.dept === department) && (!receiptOnly || checks.has(t.id)) && [t.description, t.reference, t.project, t.category].join(' ').toLowerCase().includes(query.toLowerCase())).slice().sort((a, b) => b.date.localeCompare(a.date));
+  const pages = Math.max(1, Math.ceil(list.length / 50)), current = Math.min(page, pages - 1);
+  return <section className="card pad stack-s"><div className="hstack"><div className="title20">Your transaction history</div>{top && <button className="btn btn-secondary" onClick={() => useUI.getState().set({ finTab: 'import' })}>Import more records</button>}</div><div className="inventory-grid"><label className="field">Search transactions<input className="input" type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(0); }} placeholder="Supplier, reference, project…" /></label><label className="field">Department<select className="input" value={department} onChange={e => { setDepartment(e.target.value); setPage(0); }}><option value="all">All visible departments</option>{depts.map(d => <option key={d}>{d}</option>)}</select></label></div><label className="small"><input type="checkbox" checked={receiptOnly} onChange={e => { setReceiptOnly(e.target.checked); setPage(0); }} /> Only receipts needing a check</label>
+    <div className="inventory-table"><table className="tx"><thead><tr><th>Date</th><th>Payment</th><th>Department</th><th>Type</th><th>Amount</th><th>Receipt</th><th>Source / actions</th></tr></thead><tbody>{list.slice(current * 50, current * 50 + 50).map(t => <tr key={t.id}><td>{t.date}</td><td><b>{t.description}</b><div className="small muted">{t.category}{t.project ? ' · ' + t.project : ''}{t.reference ? ' · ' + t.reference : ''}</div>{t.requestId && <button className="btn btn-ghost btn-sm" onClick={() => useUI.getState().set({ reqId: t.requestId })}>{t.requestId}</button>}</td><td>{t.dept}</td><td>{t.kind}</td><td className="mono">{m(t.amountCents / 100)}</td><td>{t.kind === 'expense' ? checks.has(t.id) ? 'Needs checking' : 'Marked present' : '—'}</td><td>{org.financeImports?.find(i => i.id === t.importId)?.file}<div className="small muted">Record {t.sourceRow}</div><button className="btn btn-ghost btn-sm" aria-label={`Update details for ${t.description}`} onClick={() => setEditing(t)}>Update details</button></td></tr>)}</tbody></table></div>
+    {!list.length && <div className="empty">No matching transactions. Import your bank export or spending sheet to begin.</div>}<div className="hstack"><button className="btn btn-secondary" disabled={!current} onClick={() => setPage(current - 1)}>Previous</button><span className="small">{list.length} transactions · page {current + 1} of {pages}</span><button className="btn btn-secondary" disabled={current + 1 >= pages} onClick={() => setPage(current + 1)}>Next</button></div>
+    {top && !!org.financeImports?.length && <details><summary>Import history</summary>{org.financeImports.map(i => <div key={i.id} className="inset small" style={{ marginTop: 8 }}>{i.file} · {i.source === 'bank' ? 'Bank export' : 'Spending sheet'} · {i.saved} saved / {i.excluded} excluded / {i.read} read · {i.from} to {i.through} · {when(i.at)}{i.baseline === 'replace' && <div>Replaced earlier-spending summary ({m(Object.values(i.previousBaseSpend || {}).reduce((a, b) => a + b, 0))}).</div>}</div>)}</details>}
+    {editing && <TransactionDetails transaction={editing} departments={depts} onClose={() => setEditing(undefined)} />}
+  </section>;
+}
+
+function TransactionDetails({ transaction, departments, onClose }: { transaction: FinanceTransaction; departments: string[]; onClose: () => void }) {
+  const { org, me, m } = useCtx();
+  const request = org.requests.find(r => r.id === transaction.requestId);
+  const [details, setDetails] = useState<FinanceTransactionDetails>({ dept: transaction.dept, category: transaction.category, project: transaction.project, receipt: request?.receipt ? 'present' : transaction.receipt });
+  const [error, setError] = useState('');
+  const save = () => {
+    try {
+      saveOrganisation(org.id, current => updateFinanceDetails(current, transaction.id, details, me, Date.now()));
+      useUI.getState().say('Transaction details updated across your workspace.'); onClose();
+    } catch (e) { setError((e as Error).message); }
+  };
+  return <Dialog label="Update transaction details" onClose={onClose} width={520}>
+    <div className="title20">{transaction.description}</div><div className="small muted">{transaction.date} · {m(transaction.amountCents / 100)} · {transaction.kind}</div>
+    <label className="field">Transaction department<select className="input" disabled={!!transaction.requestId} value={details.dept} onChange={e => setDetails({ ...details, dept: e.target.value })}>{departments.map(d => <option key={d}>{d}</option>)}</select></label>
+    {transaction.requestId && <div className="small muted">Department follows linked request {transaction.requestId}.</div>}
+    <label className="field">Transaction category<input className="input" value={details.category} onChange={e => setDetails({ ...details, category: e.target.value })} /></label>
+    <label className="field">Transaction project<input className="input" value={details.project} onChange={e => setDetails({ ...details, project: e.target.value })} /></label>
+    {transaction.kind === 'expense' && <label className="field">Transaction receipt status<select className="input" value={details.receipt} disabled={!!request?.receiptImg} onChange={e => setDetails({ ...details, receipt: e.target.value as FinanceTransaction['receipt'] })}><option value="unknown">Not checked</option><option value="missing">Missing</option><option value="present">I have the receipt</option></select></label>}
+    <div className="small muted">Receipt status records your confirmation, not an uploaded image. Department corrections update spending and approval context immediately.</div>
+    {!!transaction.detailsHistory?.length && <details><summary>Previous changes ({transaction.detailsHistory.length})</summary>{transaction.detailsHistory.map((change, i) => <div className="small inset" key={i}>{new Date(change.at).toLocaleString()} · {org.people.find(p => p.id === change.by)?.name || change.by}<div>{change.before.dept} → {change.after.dept} · receipt: {change.before.receipt} → {change.after.receipt}</div></div>)}</details>}
+    {error && <div className="err" role="alert">{error}</div>}<div className="hstack"><button className="btn btn-secondary" onClick={onClose}>Cancel</button><button className="btn btn-primary" onClick={save}>Save transaction details</button></div>
+  </Dialog>;
 }
 
 function Budgets() {
-  const { org, top, m, mut } = useCtx();
+  const { org, me, top, m } = useCtx();
+  const [error, setError] = useState('');
+  const updateBudget = (input: HTMLInputElement, department?: string) => {
+    try {
+      const amount = moneyCents(input.value, 'dot', false) / 100;
+      saveOrganisation(org.id, current => {
+        if (!isTop(current, me)) throw new Error('Only team leaders can change budgets.');
+        if (department) current.budgets[department] = amount; else current.termBudget = amount;
+      });
+      setError('');
+    } catch (e) { setError((e as Error).message); input.value = String(department ? org.budgets[department] || 0 : org.termBudget); }
+  };
   const depts = deptNames(org);
   const alloc = depts.reduce((a, d) => a + (org.budgets[d] || 0), 0), un = org.termBudget - alloc;
-  return (
-    <section className="card pad stack-s" style={{ gap: 14, maxWidth: 640 }}>
-      <div className="hstack" style={{ alignItems: 'flex-end' }}>
-        <div style={{ flex: 1 }}><div className="title20">Split the {m(org.termBudget)} term budget</div><div className="small muted">Budgets guide decisions. They never block a request.</div></div>
-        <div className="field" style={{ width: 150 }}><label>Term budget</label><input className="input" inputMode="numeric" value={String(org.termBudget)} disabled={!top} onChange={e => { const v = Number(e.target.value.replace(/[^0-9]/g, '')) || 0; mut(o => { o.termBudget = v; }); }} style={{ textAlign: 'right' }} /></div>
-      </div>
-      {depts.map(d => <div key={d} className="hstack" style={{ padding: '6px 0', flexWrap: 'nowrap' }}>
-        <span style={{ width: 12, height: 12, borderRadius: 4, background: deptColor(org, d), flex: 'none' }} />
-        <div style={{ flex: 1 }}><div style={{ fontWeight: 600 }}>{d}</div><div className="small muted">{m(spend(org, d))} spent so far</div></div>
-        <span className="muted">{org.currency === 'EUR' ? '€' : org.currency === 'GBP' ? '£' : '$'}</span>
-        <input className="input" inputMode="numeric" value={String(org.budgets[d] || 0)} disabled={!top} style={{ width: 120, textAlign: 'right' }} aria-label={d + ' budget'}
-          onChange={e => { const v = Number(e.target.value.replace(/[^0-9]/g, '')) || 0; mut(o => { o.budgets[d] = v; }); }} />
-      </div>)}
-      <div style={{ padding: '12px 14px', borderRadius: 14, fontSize: 14, background: un < 0 ? 'var(--warn-bg)' : '#f6f7f9', color: un < 0 ? 'var(--warn)' : '#3c4652' }}>
-        {un === 0 ? `All ${m(org.termBudget)} is allocated.` : un > 0 ? `${m(un)} not yet allocated.` : `${m(-un)} more than the term budget.`}</div>
-      {!top && <div className="small muted">Only people at the top of the chart can change budgets.</div>}
-    </section>
-  );
-}
-
-function Import() {
-  const { org, top, m, mut } = useCtx();
-  const say = useUI(s => s.say), set = useUI(s => s.set);
-  const [step, setStep] = useState(1);
-  const [file, setFile] = useState('');
-  const [rows, setRows] = useState<string[][]>([]);
-  const [map, setMap] = useState<Mapping | null>(null);
-  const [cat, setCat] = useState<Record<number, string>>({});
-  const [ok, setOk] = useState<Record<number, boolean>>({});
-  const [res, setRes] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<{ rows: number } | null>(null);
-
-  const load = (text: string, name: string) => {
-    const r = parseCsv(text);
-    if (r.length < 2) return say('That file has no rows.');
-    setRows(r); setFile(name); setMap(guessMapping(r[0])); setCat({}); setOk({}); setRes({}); setStep(2);
-  };
-  const lines: Categorised[] = useMemo(() => (map && step >= 3 ? categorise(toLines(rows, map)) : []), [rows, map, step]);
-  const { flags, matches } = useMemo(() => analyse(lines, org, m), [lines, org]);
-  const review = lines.filter(l => l.confidence < THRESHOLD);
-  const rules = lines.filter(l => l.source === 'rule').length, ai = lines.length - rules - review.length;
-  const left = review.filter(l => !ok[l.i]).length + flags.filter(f => !res[f.key]).length;
-
-  const doImport = () => {
-    const dupLines = new Set(flags.filter(f => f.kind === 'dup' && res[f.key] === 'Mark duplicate').map(f => f.lineIdx[1]));
-    const kept = lines.filter(l => !dupLines.has(l.i));
-    const byCategory: Record<string, number> = {};
-    kept.forEach(l => { if (l.amount < 0) { const c = cat[l.i] || l.category; byCategory[c] = Math.round(((byCategory[c] || 0) - l.amount) * 100) / 100; } });
-    const chased = flags.filter(f => f.kind === 'receipt' && res[f.key]?.startsWith('Chase'));
-    mut(o => {
-      o.imports.unshift({ id: uid('imp'), at: Date.now(), file, rows: kept.length, rules, ai, reviewed: review.length, matched: matches.length, flags: flags.length,
-        moneyOut: Math.round(kept.filter(l => l.amount < 0).reduce((a, l) => a - l.amount, 0) * 100) / 100, moneyIn: Math.round(kept.filter(l => l.amount > 0).reduce((a, l) => a + l.amount, 0) * 100) / 100, byCategory });
-      chased.forEach(f => { const id = f.key.replace('receipt', ''); const r = o.requests.find(x => x.id === id); if (r) r.trail.push({ who: 'Bank import', what: 'Receipt requested from ' + nameOf(o, r.byId), at: Date.now() }); });
-    });
-    setResult({ rows: kept.length }); setStep(4); say('Import complete.');
-  };
-
-  if (!top) return <section className="card pad small muted">Only people at the top of the chart can import bank exports.</section>;
-
-  return (
-    <div className="stack-s" style={{ gap: 18, maxWidth: 860 }}>
-      <Steps n={4} cur={step} />
-      {step === 1 && <section className="card stack-s" style={{ padding: '48px 32px', alignItems: 'center', textAlign: 'center', gap: 14 }}>
-        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--p100)', display: 'grid', placeItems: 'center', fontSize: 28 }}>🏦</div>
-        <div className="title26">Drop in your bank export</div>
-        <div className="muted" style={{ maxWidth: 440 }}>Known payees are matched by rules. Unclear lines get an AI suggestion with a confidence score. Anything under {THRESHOLD * 100}% sure comes to you.</div>
-        <div className="hstack" style={{ justifyContent: 'center' }}>
-          <button className="btn btn-primary" onClick={() => load(sampleCsv(), 'sample-september.csv')}>Use sample CSV (150 rows)</button>
-          <label className="btn btn-secondary">Upload a CSV<input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={async e => { const f = e.target.files?.[0]; if (f) load(await f.text(), f.name); }} /></label>
-          <button className="btn btn-ghost" onClick={() => { const b = new Blob([sampleCsv()], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'sample-bank-export.csv'; a.click(); }}>Download sample</button>
-        </div>
-      </section>}
-
-      {step === 2 && map && <section className="card pad stack-s">
-        <div className="title20">These columns look right?</div>
-        <div className="small muted">{file} · {rows.length - 1} rows. We guessed the mapping from the headers. Change anything that’s off.</div>
-        {FIELDS.map(fd => <div key={fd.key} className="inset hstack" style={{ flexWrap: 'wrap' }}>
-          <span className="tag">{fd.label}</span><span style={{ color: 'var(--faint)' }}>←</span>
-          <select className="input white" style={{ width: 200, minHeight: 36 }} value={map[fd.key]} onChange={e => setMap({ ...map, [fd.key]: Number(e.target.value) })}>
-            <option value={-1}>— not in file —</option>{rows[0].map((h, i) => <option key={i} value={i}>{h || 'Column ' + (i + 1)}</option>)}</select>
-          <span className="small mono muted" style={{ marginLeft: 'auto' }}>{map[fd.key] >= 0 ? rows[1][map[fd.key]] || '(blank)' : ''}</span>
-        </div>)}
-        {(map.date < 0 || map.desc < 0 || (map.amount < 0 && map.out < 0 && map.in < 0)) && <div className="callout-warn">Map at least a date, a description and an amount column.</div>}
-        <div className="hstack" style={{ justifyContent: 'flex-end' }}><button className="btn btn-ghost" onClick={() => setStep(1)}>Cancel</button>
-          <button className="btn btn-primary" disabled={map.date < 0 || map.desc < 0 || (map.amount < 0 && map.out < 0 && map.in < 0)} onClick={() => setStep(3)}>Looks good</button></div>
-      </section>}
-
-      {step === 3 && <>
-        <div className="g3">{[[rules, 'matched by rules'], [ai, `AI-categorised (${THRESHOLD * 100}%+ sure)`], [review.filter(l => !ok[l.i]).length, 'need your review']].map(([v, l]) =>
-          <div key={l} className="card stat"><div className="v">{v}</div><div className="small muted">{l}</div></div>)}</div>
-        <section className="card stack-s" style={{ padding: 20, gap: 10 }}>
-          <div className="hstack"><span className="b800">Needs review · AI suggestions</span>
-            {review.length > 3 && <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setOk(Object.fromEntries(review.map(l => [l.i, true])))}>Accept all suggestions</button>}</div>
-          {review.map(l => { const c = cat[l.i] || l.category, done = ok[l.i]; return (
-            <div key={l.i} className="inset hstack" style={{ padding: '10px 12px' }}>
-              <div style={{ flex: 1, minWidth: 160 }}><div className="mono" style={{ fontSize: 13 }}>{l.payee}</div><div className="tiny muted">{l.date} · {m(l.amount)} · suggestion {Math.round(l.confidence * 100)}% sure · {l.reason}</div></div>
-              <select className="input white" style={{ width: 180, minHeight: 38 }} value={c} aria-label="Category" onChange={e => { setCat({ ...cat, [l.i]: e.target.value }); setOk({ ...ok, [l.i]: true }); }}>{CATEGORIES.map(x => <option key={x}>{x}</option>)}</select>
-              <button className={'btn btn-sm ' + (done ? 'btn-primary' : 'btn-secondary')} onClick={() => setOk({ ...ok, [l.i]: true })}>{done ? '✓ Confirmed' : 'Confirm'}</button>
-            </div>); })}
-          {!review.length && <div className="small muted">Nothing to review. Every line was matched confidently.</div>}
-        </section>
-        <section className="card stack-s" style={{ padding: 20, gap: 10 }}>
-          <div className="b800">Flags</div>
-          {flags.map(f => <div key={f.key} className="inset hstack" style={{ padding: '10px 12px' }}>
-            <div style={{ flex: 1, minWidth: 180 }}><div className="tiny b800 muted">{f.type}</div><div style={{ fontSize: 14 }}>{f.text}</div></div>
-            {f.opts.map(o => <button key={o} className={'btn btn-sm ' + (res[f.key] === o ? 'btn-primary' : 'btn-secondary')} onClick={() => setRes({ ...res, [f.key]: o })}>{res[f.key] === o ? '✓ ' : ''}{o}</button>)}
-          </div>)}
-          {!flags.length && <div className="small muted">No flags.</div>}
-          <div className="small muted">{matches.length} bank {matches.length === 1 ? 'line' : 'lines'} matched to approved requests{matches.length ? ': ' + matches.map(x => x.reqId).join(', ') : ''}.</div>
-        </section>
-        <div className="hstack" style={{ justifyContent: 'flex-end' }}><span className="small muted" style={{ marginRight: 'auto' }}>{left ? left + ' left to check' : 'All checked'}</span>
-          <button className="btn btn-ghost" onClick={() => setStep(1)}>Cancel</button>
-          <button className="btn btn-primary" disabled={left > 0} onClick={doImport}>Import {lines.length} transactions</button></div>
-      </>}
-
-      {step === 4 && result && <section className="card stack-s" style={{ padding: '48px 32px', alignItems: 'center', textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--p-h)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 28 }}>✓</div>
-        <div className="title26">{result.rows} transactions imported</div>
-        <div className="muted">Dashboards and flags are up to date.</div>
-        <button className="btn btn-primary" onClick={() => set({ finTab: 'overview' })}>See overview</button>
-      </section>}
-    </div>
-  );
+  return <section className="card pad stack-s" style={{ gap: 14, maxWidth: 640 }}>
+    <div className="title20">Split the {m(org.termBudget)} term budget</div><div className="small muted">Budget used includes paid spending and approved commitments. Budgets guide decisions; they never block a request.</div>
+    <label className="field">Term budget<input key={org.termBudget} className="input" inputMode="decimal" defaultValue={String(org.termBudget)} disabled={!top} onBlur={e => updateBudget(e.currentTarget)} /></label>
+    {depts.map(d => <div key={d} className="hstack" style={{ flexWrap: 'nowrap' }}><span style={{ width: 12, height: 12, borderRadius: 4, background: deptColor(org, d), flex: 'none' }} /><div style={{ flex: 1 }}><b>{d}</b><div className="small muted">{m(spend(org, d))} used · {m(financeTotals(org, d).committed)} of this is approved but unpaid</div></div><input key={org.budgets[d]} className="input" inputMode="decimal" defaultValue={String(org.budgets[d] || 0)} disabled={!top} style={{ width: 120, textAlign: 'right' }} aria-label={d + ' budget'} onBlur={e => updateBudget(e.currentTarget, d)} /></div>)}
+    <div className="small muted">Use decimal points. Changes save when you leave a field.</div>{error && <div className="err" role="alert">{error}</div>}
+    <div className="inset small">{un === 0 ? `All ${m(org.termBudget)} is allocated.` : un > 0 ? `${m(un)} not yet allocated.` : `${m(-un)} more than the term budget.`}</div>{!top && <div className="small muted">Only people at the top of the chart can change budgets.</div>}
+  </section>;
 }

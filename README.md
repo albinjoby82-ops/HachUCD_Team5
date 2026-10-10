@@ -23,8 +23,8 @@ Open http://localhost:5173. Everything runs offline. All data lives in this brow
 | **Join flow** | Invite code → account → role confirmation that shows your approval route. If your email was invited, you claim that spot. |
 | **Requests** | Before-you-buy check against your own inventory and the cluster. Auto duplicate flag. Approve, pass up, send back (requester updates and resends) or reject. Full activity trail. |
 | **Mark bought** | Upload or snap a receipt photo → OCR fields with confidence (editable) → add to inventory, optionally shared with the cluster |
-| **Finance** | Spend vs budget per department, a summary templated from computed totals, flags, budget split |
-| **Bank import** | A real CSV parser (upload your own or use the 150-row sample). Columns are auto-mapped and you can change them. Known payees match by rule; unclear lines get a suggestion with confidence, and anything under 80% goes to review. Flags: duplicate, refund, unusual amount, no matching request, missing receipt. Bank lines are matched to approved requests. |
+| **Finance** | Paid spending, approved commitments, income and remaining budgets from the same records across Home, Finance and purchase approvals. Searchable transaction history and receipt checks. |
+| **Mid-season catch-up** | Import bank exports or team spending sheets. Confirm mappings, dates, amounts and departments; review duplicates and link paid requests; choose whether to replace earlier summary spending; preview the resulting budgets before saving. Templates included. See [catch-up guide](FINANCE_CATCHUP.md). |
 | **Inventory** | CSV upload, mapping, editable review, validation, duplicate protection, import history; search, cost/supplier dashboard, manual add/edit, take/return and cluster sharing. Local browser persistence only. See [implementation notes](INVENTORY_IMPLEMENTATION.md). |
 | **Cluster** | Cross-org lending between real workspaces (Ironclad, Volt FS, SkyLab, plus any team you register). The owning department lead approves incoming requests. Overdue tracking. |
 | **Multi-org** | The org switcher keeps workspaces separate. You can switch into Volt FS or SkyLab too. |
@@ -37,7 +37,7 @@ The **Demo · view as** bar (bottom right) has a **Script** button. Each step sw
 2. **Daniel decides.** He sees budget context, similar past purchases and the duplicate flag, then passes it up to Aoife.
 3. **Aoife** sees only what was passed up to her, with Daniel's note.
 4. **Tom marks R-102 bought.** Sample receipt → OCR → it lands in Mechanical inventory.
-5. **Bank import.** 150 lines: 125 by rules, 21 AI, 4 for review, 6 flags. It matches R-102, R-100 and R-099.
+5. **Mid-season catch-up.** As Maya or Aoife, open Finance → Catch up / import. Try the bank example, select separate money-in/out, ISO dates and decimal points. Review, decide whether the old summary overlaps, confirm budgets and save. Then try the spending-sheet example: two overlapping payments are flagged. Exclude them and add only the new expense.
 6. **Cluster.** Tom borrows SkyLab's 3D printer.
 7. **Daniel** approves Volt FS's request to borrow the torque wrench. The chart makes him the approver.
 8. **Edit the chart as Maya.** Hover Mechanical captain → **+** → "Pneumatics lead". Drag Sam in (he becomes lead), then drag Tom in. Trace Tom: Sam → Daniel → Aoife → Maya.
@@ -45,13 +45,15 @@ The **Demo · view as** bar (bottom right) has a **Script** button. Each step sw
 
 ## Honest labelling
 
-The receipt OCR and the "AI" categoriser are simulated so the demo runs offline. They're labelled in the UI, and the categoriser returns `{category, confidence, reason}` the way an LLM call would. Email, Google sign-in and billing aren't connected. Totals are always computed in code, never by AI.
+Receipt OCR remains simulated. Finance catch-up uses deterministic parsing and user-confirmed mappings, types and categories; it does not call an AI service. The old simulated categoriser remains in the source for reference but is no longer the import screen. Email, Google sign-in and billing aren't connected. Totals are always computed in code, never by AI.
 
 ## Code map
 
 - `src/lib/org.ts`: business rules (chain, visibility, departments, spend)
 - `src/components/FlowChart.tsx`: the chart editor
-- `src/lib/csv.ts`: bank import engine
+- `src/lib/finance.ts`: finance import validation, ledger and shared totals
+- `src/pages/app/FinanceCatchup.tsx`: user-facing catch-up journey
+- `src/lib/csv.ts`: legacy demo categoriser (not used by the new flow)
 - `src/lib/cluster.ts`: before-you-buy, lending, holdings
 - `src/lib/seed.ts`: sample orgs
 - `src/pages/Wizard.tsx`, `Join.tsx`: onboarding

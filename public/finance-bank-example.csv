@@ -1,0 +1,6 @@
+Date,Description,Debit,Credit,Department,Type,Reference,Receipt
+2026-09-01,Season sponsorship,,2000,Shared,income,SP-001,
+2026-09-03,Chassis materials,120,,Mechanical,expense,BK-001,yes
+2026-09-04,Sensor order,45.50,,Electrical,expense,BK-002,no
+2026-09-08,Material refund,,20,Mechanical,refund,BK-003,
+2026-09-10,Transfer to savings,200,,Shared,transfer,BK-004,

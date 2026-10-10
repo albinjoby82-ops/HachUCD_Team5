@@ -36,7 +36,7 @@ export function Shell({ page }: { page: string }) {
     ...org.requests.filter(r => r.byId === me && ['approved', 'sentback', 'rejected'].includes(r.status)).map(r => ({ k: 'm' + r.id, text: 'Your request was ' + statusWord(r.status), sub: r.item, go: () => ui.set({ reqId: r.id, bell: false }) })),
     ...held.map(h => ({ k: 'h' + h.key, text: h.name + (h.state === 'overdue' ? ' is overdue' : ' is due back soon'), sub: h.sub, go: () => { ui.set({ bell: false }); go('/app/inventory'); } })),
     ...incoming.map(b => ({ k: b.id, text: b.borrowerName + ' (' + (orgs.find(o => o.id === b.borrowerOrgId)?.name || 'another team') + ') wants to borrow', sub: org.items.find(i => i.id === b.itemId)?.name || '', go: () => { ui.set({ bell: false }); go('/app/cluster'); } })),
-    ...(top && mods.finance && !org.imports.length ? [{ k: 'imp', text: 'Bank export ready to import', sub: 'Drop in the CSV to reconcile', go: () => { ui.set({ bell: false, finTab: 'import' }); go('/app/finance'); } }] : []),
+    ...(top && mods.finance && !org.financeImports?.length ? [{ k: 'imp', text: 'Catch up your team finances', sub: 'Import a bank export or spending sheet', go: () => { ui.set({ bell: false, finTab: 'import' }); go('/app/finance'); } }] : []),
   ];
 
   const nav: [string, string, boolean, number][] = [
@@ -59,7 +59,7 @@ export function Shell({ page }: { page: string }) {
     switch (page) {
       case 'requests': return <Requests />;
       case 'new': return <NewRequest />;
-      case 'finance': return <Finance />;
+      case 'finance': return <Finance key={org.id + me} />;
       case 'inventory': return <Inventory key={org.id + me} />;
       case 'cluster': return <ClusterPage />;
       case 'team': return <Team />;
