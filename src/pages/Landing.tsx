@@ -24,7 +24,7 @@ export function Landing() {
       <main className="land-main fade">
         <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 20, maxWidth: 780 }}>
           <span className="tag">Hack UCD · working prototype</span>
-          <h1 className="land-hero">Build your team once. <span style={{ color: 'var(--p)' }}>Truly handles the rest.</span></h1>
+          <h1 className="land-hero">Build your team once. <span style={{ color: 'var(--p)' }}>Teamly handles the rest.</span></h1>
           <p style={{ fontSize: 19, color: 'var(--muted)', margin: 0, maxWidth: 600 }}>Every purchase goes to the right person and the money stays organised. You always know what your team, and the teams around you, own.</p>
           <div className="hstack">
             <button className="btn btn-primary" onClick={() => go('/signup')}>Create an organisation</button>
