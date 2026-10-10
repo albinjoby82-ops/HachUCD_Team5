@@ -1,9 +1,11 @@
+import { handleStripe } from '../shared/stripe/sandbox.mjs';
+import type { StripeEnv } from '../shared/stripe/sandbox.mjs';
 // Commons AI proxy. Runs in the same Cloudflare Worker that serves the site (only /api/* reaches it).
 // The browser never sees the key, and cannot use this as a general-purpose LLM: it only runs the named tasks.
 import { TASKS, type TaskName } from '../shared/ai/prompts';
 import { callOpenRouter } from '../shared/ai/call';
 
-export interface Env {
+export interface Env extends StripeEnv {
   OPENROUTER_API_KEY?: string;
   MODEL_FAST?: string;
   MODEL_STRONG?: string;
@@ -28,6 +30,7 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
+    if (url.pathname === '/api/stripe') return handleStripe(req, env);
     if (!originAllowed(req, env)) return json({ error: 'forbidden_origin' }, 403);
 
     if (req.method === 'GET' && url.pathname === '/api/ai/health') {

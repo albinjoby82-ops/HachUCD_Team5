@@ -1,135 +1,49 @@
-# Teamly — Stripe Sandbox Integration
+# Public Stripe sandbox demo
 
-Teamly's hackathon demo includes a **€9.99/month subscription per organisation** using Stripe Checkout in **test/sandbox mode**. This is a single plan, not multiple pricing tiers.
+The landing page offers a simulated €9.99/month subscription. Checkout runs on the same domain as the website, on Vercel or Cloudflare Workers. No separate Express server is needed. Live Stripe keys are rejected. The configured price must be an active **test** price for exactly €9.99 EUR per month.
 
-## What's implemented
+## Publish on Vercel
 
-- Landing-page **Subscribe for €9.99/month** button (`src/pages/Landing.tsx`).
-- Express endpoint `POST /api/create-checkout-session` (`backend/server.js`) creates a Stripe Checkout Session with `mode: "subscription"` and redirects the browser to Stripe-hosted Checkout.
-- Signed webhook endpoint `POST /api/stripe-webhook` verifies incoming Stripe events and logs subscription/payment events.
-- Webhook event handling includes `checkout.session.completed`, `invoice.paid`, and `customer.subscription.deleted`.
+1. Use this repository as the project, with its root directory set to the folder containing the root `package.json` (the repository root). Select Vite; build command `npm run build`; output directory `dist`. Use Node 22 or newer. The `api/stripe.js` function is deployed alongside the frontend.
+2. In Project → Settings → Environment Variables, add these **server-side** values for Production (and Preview if you need preview deployments):
 
-**Demo limitation:** The current implementation does **not** associate a Stripe customer/subscription with a Teamly organisation, store subscription status, or restrict platform access to paid organisations. A successful Checkout redirect or logged webhook event is not an access-control mechanism. This integration demonstrates the payment flow, not production billing entitlement management.
+   | Name | Value |
+   | --- | --- |
+   | `STRIPE_SECRET_KEY` | Your sandbox secret beginning `sk_test_` |
+   | `STRIPE_PRICE_ID` | A recurring €9.99 EUR monthly test price from that same sandbox |
+   | `APP_URL` | Your exact website origin, e.g. `https://www.example.com`, without a path |
+   | `STRIPE_WEBHOOK_SECRET` | Signing secret for the destination below, beginning `whsec_` |
 
-## Stripe configuration
+   Never prefix secrets with `VITE_`, put them into the frontend, or commit them. The existing Teamly sandbox price is `price_1UP0OHJO2U2ZDInD40iYhkgq`; it only works with that sandbox's key.
+3. In Stripe's sandbox, create a webhook destination for `https://YOUR-DOMAIN/api/stripe?action=webhook`. Select `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated`, and `customer.subscription.deleted`. Copy its signing secret into Vercel.
+4. Redeploy after setting environment variables. Visit `/api/stripe?action=config`: it must return `demo: true`, `amount: 999`, and `currency: "eur"`. If you change the domain, update `APP_URL` and the webhook destination. A preview domain needs its own matching `APP_URL`.
 
-In the **Teamly Hackathon Stripe sandbox**, the recurring product is:
+This function handles Stripe only. The existing AI Worker is a separate integration; deploying to Vercel does not automatically deploy that Worker.
 
-| Setting | Value |
-| --- | --- |
-| Product | Teamly |
-| Billing | Monthly subscription |
-| Price | €9.99 EUR / month |
-| Stripe Price ID | `price_1UP0OHJO2U2ZDInD40iYhkgq` |
-| Checkout endpoint | `POST http://localhost:3000/api/create-checkout-session` |
-| Webhook endpoint | `POST http://localhost:3000/api/stripe-webhook` |
+## Publish on Cloudflare Workers
 
-## Set up locally (Windows PowerShell)
+Use the existing Wrangler configuration. Set `APP_URL` and `STRIPE_PRICE_ID` in its `vars`. Store the sandbox key and destination signing secret with `npx wrangler secret put STRIPE_SECRET_KEY` and `npx wrangler secret put STRIPE_WEBHOOK_SECRET`. Deploy with `npx wrangler deploy`. Configure the same `/api/stripe?action=webhook` destination on the public domain. Never put secrets into `wrangler.jsonc`.
 
-Prerequisites: Node.js/npm, access to a Stripe **test/sandbox** account, and Stripe CLI. The commands below use `npm.cmd` and `stripe.cmd` for PowerShell environments where `.ps1` scripts are blocked.
+## Local development (PowerShell)
 
-1. Clone/pull the repository and install dependencies from the repository root:
+Copy `.dev.vars.example` to `.dev.vars` **only if it does not already exist**, and fill in the Stripe values. Preserve your existing OpenRouter settings. Set `APP_URL=http://localhost:5173` (or `http://127.0.0.1:5173` if that is the address you use).
 
-   ```powershell
-   npm.cmd install
-   cd backend
-   npm.cmd install
-   ```
+From the repository folder, run `npm.cmd ci` and `npm.cmd run dev:api`. In another terminal run `npm.cmd run dev`. Both AI and Stripe requests are proxied to the local Worker on port 8787. For local webhooks, use `stripe listen --forward-to "localhost:8787/api/stripe?action=webhook"` and put its signing secret into `.dev.vars`, then restart the Worker.
 
-2. Create `backend/.env` **locally** (do not commit it):
+The optional `backend/server.js` Express adapter exposes the same `/api/stripe` handler for existing backend users. The default frontend uses the Worker, so it does not need this server. The old `/api/create-checkout-session`, `/api/stripe-webhook` and plain-text localhost return pages have been retired.
 
-   ```dotenv
-   STRIPE_SECRET_KEY=sk_test_REPLACE_WITH_YOUR_SANDBOX_SECRET_KEY
-   STRIPE_PRICE_ID=price_1UP0OHJO2U2ZDInD40iYhkgq
-   STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_CURRENT_CLI_SIGNING_SECRET
-   ```
+## Demonstrate the flow
 
-   The listed Price ID belongs to the existing Teamly sandbox account. If you use **your own** Stripe sandbox, create a €9.99/month recurring price there and replace `STRIPE_PRICE_ID` with your account's Price ID. Stripe secret keys are account-specific; never put them in frontend code.
+1. Open the landing page. It should say **Sandbox · no real payments**.
+2. Click **Try demo checkout**. In Stripe, use `4242 4242 4242 4242`, any future expiry, and any three-digit CVC. Use test details, never a real card.
+3. Complete checkout. The website asks Stripe to verify the session and displays **Test payment confirmed by Stripe** only for a completed, paid test session created by this demo.
+4. Try cancelling checkout: you return to the website with a cancellation message. Temporary failures show an error and retry control. Checkout retries use an idempotency key to avoid creating duplicate sessions for the same attempt.
+5. Confirm the test subscription in the Stripe sandbox dashboard. Check webhook delivery there; signed test events are acknowledged without changing app data.
 
-3. Start the backend (terminal 1, from `backend/`):
+## Scope and verification
 
-   ```powershell
-   node server.js
-   ```
+This is a public **payment-flow demo**, not a login or paid-access system. No account access is granted, no organisation subscription record is stored, and webhooks have no fulfilment side effects. Return-page verification is for display only. Real billing would require authenticated team ownership, durable billing state, cancellation management, and idempotent webhook fulfilment.
 
-   The backend should listen on `http://localhost:3000`.
+Run `npm.cmd run test:stripe` and `npm.cmd run build`. Tests use mocked Stripe responses and signed webhook fixtures; they do not make payments. A complete live sandbox checkout still needs the account owner's test credentials and a deployed website.
 
-4. Log in to Stripe CLI, then forward webhooks (terminal 2):
-
-   ```powershell
-   stripe.cmd login
-   stripe.cmd listen --events checkout.session.completed,invoice.paid,customer.subscription.updated,customer.subscription.deleted --forward-to localhost:3000/api/stripe-webhook
-   ```
-
-   Copy the **current** `whsec_...` value printed by `stripe listen` into `backend/.env` as `STRIPE_WEBHOOK_SECRET`, then **restart the backend**. The CLI signing secret can change between listener sessions. Keep this terminal running.
-
-5. Start the frontend (terminal 3, from the repository root):
-
-   ```powershell
-   npm.cmd run dev
-   ```
-
-   Open the local URL Vite prints (typically `http://localhost:5173/`). The frontend currently calls `http://localhost:3000` directly; the backend must be running, and its local CORS configuration must allow the frontend origin.
-
-## Demo walkthrough
-
-1. Open Teamly's landing page and click **Subscribe for €9.99/month**.
-2. Confirm Stripe-hosted Checkout shows the monthly Teamly subscription.
-3. In **Stripe sandbox/test mode only**, use test card `4242 4242 4242 4242`, any future expiration date, and any valid CVC. Complete the test checkout.
-4. Inspect the **backend terminal** and **Stripe CLI listener** for verified webhook events such as `checkout.session.completed` and `invoice.paid`.
-5. In the same Stripe sandbox, check **Billing → Subscriptions** and **Payments** to confirm the test subscription and payment.
-
-You can also test webhook delivery without making a checkout using:
-
-```powershell
-stripe.cmd trigger invoice.paid
-```
-
-**Important:** `stripe trigger` sends a simulated test event. It does **not** prove that a customer completed Checkout or purchased a subscription. For the full demo, perform an actual sandbox Checkout and verify the resulting subscription in Stripe.
-
-## Current redirect behavior
-
-The Checkout Session uses these URLs:
-
-- Success: `http://localhost:3000/payment-success`
-- Cancellation: `http://localhost:3000/payment-cancelled`
-
-The success page is a confirmation of the browser returning from Checkout, **not** proof of paid access. Webhook verification is the reliable server-side signal for payment events.
-
-## Security and collaboration
-
-- **Never commit** `backend/.env`, `sk_test_...`, `whsec_...`, or live Stripe secrets.
-- Confirm the environment file is ignored: `git check-ignore backend/.env`.
-- Collaborators should create their **own local** `backend/.env` and obtain authorized sandbox credentials securely; do not share secrets in GitHub commits or chat messages.
-- If a signing secret has been exposed, rotate/reissue it, update `.env`, and restart the backend.
-- The local CORS configuration and localhost redirects are for **development only**. Production requires deployed URLs, restricted CORS, secure secret management, persistent subscription records, idempotent webhook handling, and organisation-level access checks.
-
-## Troubleshooting
-
-| Symptom | Check |
-| --- | --- |
-| Checkout button shows an error | Backend is running on port 3000; frontend origin is permitted by CORS; Stripe keys and Price ID belong to the same sandbox account |
-| Checkout opens but webhook logs are missing | Stripe CLI listener is running and forwarding to port 3000; `.env` has the listener's latest `whsec_...`; backend was restarted |
-| `Invalid Stripe signature` | Incorrect/stale `STRIPE_WEBHOOK_SECRET` or webhook body was parsed before `express.raw(...)` |
-| `API key loaded: false` | This log refers to the separate AI/OpenRouter configuration, not necessarily Stripe |
-| `stripe` or `npm` PowerShell command is blocked | Use `stripe.cmd` and `npm.cmd` |
-
-## Relevant files
-
-- `src/pages/Landing.tsx` — subscription card and Checkout button
-- `backend/server.js` — Checkout endpoint, webhook handler, local redirects
-- `backend/package.json` / `backend/package-lock.json` — Stripe backend dependency
-- `backend/.env` — **local-only** credentials (never commit)
-
-## Add this documentation to the team repository
-
-Copy `STRIPE_INTEGRATION.md` into the **repository root**, then:
-
-```powershell
-git add STRIPE_INTEGRATION.md
-git commit -m "Document Teamly Stripe sandbox integration"
-git pull --rebase origin main
-git push origin main
-```
-
-If `git pull --rebase` reports a conflict, resolve it before pushing; **do not force-push** over teammates' changes.
+References: [Stripe testing](https://docs.stripe.com/testing), [retrieve a Checkout Session](https://docs.stripe.com/api/checkout/sessions/retrieve), [Vercel function runtime](https://vercel.com/docs/functions/runtimes/node-js).

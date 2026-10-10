@@ -12,7 +12,8 @@
     "test:finance": "node --import ./tests/register-ts.mjs --test tests/finance.test.mjs",
     "test:ai": "node --import ./tests/register-ts.mjs --test tests/ai.test.mjs",
     "dev:api": "npx wrangler dev --port 8787",
-    "eval:ai": "node --import ./tests/register-ts.mjs eval/run.mjs"
+    "eval:ai": "node --import ./tests/register-ts.mjs eval/run.mjs",
+    "test:stripe": "node --test tests/stripe.test.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

@@ -2,3 +2,9 @@
 OPENROUTER_API_KEY=sk-or-...
 MODEL_FAST=REPLACE_ME
 MODEL_STRONG=REPLACE_ME
+
+# Stripe sandbox only. Never put secrets in VITE_ variables.
+STRIPE_SECRET_KEY=sk_test_REPLACE_ME
+STRIPE_PRICE_ID=price_REPLACE_ME
+STRIPE_WEBHOOK_SECRET=whsec_REPLACE_ME
+APP_URL=http://localhost:5173
