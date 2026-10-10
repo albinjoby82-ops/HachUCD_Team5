@@ -30,7 +30,7 @@ export async function callOpenRouter<I, O>(o: CallOptions<I, O>): Promise<CallRe
   const started = Date.now();
   const send = (jsonMode: boolean) => f('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${o.apiKey}`, 'Content-Type': 'application/json', ...(o.referer ? { 'HTTP-Referer': o.referer } : {}), 'X-Title': 'Commons' },
+    headers: { Authorization: `Bearer ${o.apiKey}`, 'Content-Type': 'application/json', ...(o.referer ? { 'HTTP-Referer': o.referer } : {}), 'X-Title': 'Truly' },
     body: JSON.stringify({
       model: o.model,
       messages: [{ role: 'system', content: o.spec.system }, { role: 'user', content: JSON.stringify(o.payload) }],

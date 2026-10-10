@@ -1,6 +1,6 @@
-# Commons: Hack UCD prototype
+# Truly: Hack UCD prototype
 
-Build your team's structure once as a flowchart. Commons routes every purchase to the right person, keeps the money organised, and tracks what your team (and the teams around you) own.
+Build your team's structure once as a flowchart. Truly routes every purchase to the right person, keeps the money organised, and tracks what your team (and the teams around you) own.
 
 ## Run it
 

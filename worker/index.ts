@@ -1,6 +1,6 @@
 import { handleStripe } from '../shared/stripe/sandbox.mjs';
 import type { StripeEnv } from '../shared/stripe/sandbox.mjs';
-// Commons AI proxy. Runs in the same Cloudflare Worker that serves the site (only /api/* reaches it).
+// Truly AI proxy. Runs in the same Cloudflare Worker that serves the site (only /api/* reaches it).
 // The browser never sees the key, and cannot use this as a general-purpose LLM: it only runs the named tasks.
 import { TASKS, type TaskName } from '../shared/ai/prompts';
 import { callOpenRouter } from '../shared/ai/call';

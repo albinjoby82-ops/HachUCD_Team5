@@ -50,7 +50,7 @@ export function Toast() {
 }
 
 export function Logo({ onClick }: { onClick?: () => void }) {
-  return <button className="logo" onClick={onClick}><span className="logo-mark"><span /></span>Commons</button>;
+  return <button className="logo" onClick={onClick}><span className="logo-mark"><span /></span>Truly</button>;
 }
 
 export function Section({ title, action, children, className = 'list' }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {

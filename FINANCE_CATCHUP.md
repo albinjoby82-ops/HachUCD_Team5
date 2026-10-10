@@ -2,7 +2,7 @@
 
 ## The user journey
 
-A team can join Commons after a season has already started. They bring their existing bank export or spending spreadsheet instead of re-entering every payment.
+A team can join Truly after a season has already started. They bring their existing bank export or spending spreadsheet instead of re-entering every payment.
 
 1. Open **Finance → Catch up / import** as a treasurer or top-level team leader. A new **Catch up my team** entry point is also shown in Finance; Home and the setup checklist link to it.
 2. Choose **Bank transactions** or **Team spending sheet**, then upload a UTF-8 CSV. Both formats receive equal support. Each has an example and downloadable template.

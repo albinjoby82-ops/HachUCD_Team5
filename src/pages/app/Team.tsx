@@ -29,7 +29,7 @@ export function Team() {
         onOpenPerson={pid => ui.set({ profileId: pid })} />
       {stale.length > 0 && top && <div className="callout-warn hstack">
         <span style={{ flex: 1 }}>⚑ {plural(stale.length, 'open request')} {stale.length === 1 ? 'is' : 'are'} with someone who’s no longer on that route after your edit.</span>
-        <button className="btn btn-secondary btn-sm" onClick={() => { mut(o => { o.requests.forEach(r => { if (isOpen(r) && r.holderId && !chain(o, r.byId).includes(r.holderId)) { const c = chain(o, r.byId); r.holderId = c[0] || null; if (!c.length) r.status = 'approved'; r.trail.push({ who: 'Commons', what: 'Re-routed to ' + (c[0] ? nameOf(o, c[0]) : 'approved') + ' after a chart change', at: Date.now() }); } }); }); ui.say('Re-routed to the new approvers.'); }}>Re-route them</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => { mut(o => { o.requests.forEach(r => { if (isOpen(r) && r.holderId && !chain(o, r.byId).includes(r.holderId)) { const c = chain(o, r.byId); r.holderId = c[0] || null; if (!c.length) r.status = 'approved'; r.trail.push({ who: 'Truly', what: 'Re-routed to ' + (c[0] ? nameOf(o, c[0]) : 'approved') + ' after a chart change', at: Date.now() }); } }); }); ui.say('Re-routed to the new approvers.'); }}>Re-route them</button>
       </div>}
       <div className="g3">
         {[['🧭', 'Routes approvals', 'Requests walk up from the requester’s box, one lead at a time.'], ['💶', 'Scopes budgets', 'Each department box gets its own budget line and spend bar.'], ['👀', 'Controls visibility', 'People see what’s in their chain once it reaches them or is decided.']].map(([i, t, b]) => (

@@ -1,4 +1,4 @@
-# Commons: project brief
+# Truly: project brief
 
 ## The problem
 
@@ -12,7 +12,7 @@ Student engineering teams, societies and early-stage startups all share one patt
 
 ## The idea
 
-> Build your team's structure once, and Commons routes every purchase to the right person, keeps the money organised, and tracks every item your team (and the teams around you) own.
+> Build your team's structure once, and Truly routes every purchase to the right person, keeps the money organised, and tracks every item your team (and the teams around you) own.
 
 The org chart isn't a picture. **It is the engine.** It decides who approves whose requests, how budgets split by department, and who can see which records. Change the chart and everything re-routes.
 
