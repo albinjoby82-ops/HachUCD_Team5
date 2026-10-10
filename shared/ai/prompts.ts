@@ -24,7 +24,7 @@ const mapColumns: TaskSpec<MapColumnsInput, MapColumnsOutput> = {
     'If amounts are split into debit/credit columns, fill those and leave "amount" null. Do not infer values. ' +
     'Return JSON only, in exactly this shape: {"mapping":{"date":string|null,"description":string|null,"amount":string|null,"debit":string|null,"credit":string|null,"department":string|null,"category":string|null,"who":string|null},"confidence":number,"notes":string}. ' +
     '"confidence" is 0 to 1. "notes" is one short sentence.',
-  maxTokens: 400,
+  maxTokens: 1500,
   input: parseMapInput,
   output: parseMapOutput,
   sanitize: i => ({ headers: i.headers.map(h => redactText(h, 120)), sampleRows: i.sampleRows.map(r => r.map(c => redactText(c, 120))) }),
@@ -37,7 +37,7 @@ const classifyRows: TaskSpec<ClassifyInput, ClassifyOutput> = {
     'If you are not reasonably sure of the department, use null. If unsure of the category, use "Other". ' +
     '"confidence" is 0 to 1 and must be low when the description is vague. "reason" is at most 12 words and must not invent facts about the merchant. ' +
     'Never change ids. Return JSON only, in exactly this shape: {"results":[{"id":number,"department":string|null,"category":string,"confidence":number,"reason":string}]}.',
-  maxTokens: 1800,
+  maxTokens: 3500,
   input: parseClassifyInput,
   output: parseClassifyOutput,
   sanitize: i => ({ ...i, rows: i.rows.map(r => ({ ...r, description: redactText(r.description, 200) })) }),
@@ -48,7 +48,7 @@ const summarise: TaskSpec<SummaryStats, SummaryOutput> = {
     'Write a 3-4 sentence plain-English summary of a team\'s finances for its committee. Use ONLY the figures provided. ' +
     'Do not calculate, estimate, round, sum or add numbers; quote figures exactly as given. Never describe remaining budget as a bank balance. ' +
     'Mention how many rows still need review. Return JSON only: {"summary":"..."}.',
-  maxTokens: 400,
+  maxTokens: 1500,
   input: parseSummaryInput,
   output: parseSummaryOutput,
   sanitize: i => i,
