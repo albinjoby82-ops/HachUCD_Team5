@@ -9,7 +9,10 @@
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
     "test:inventory": "node --import ./tests/register-ts.mjs --test tests/inventory.test.mjs",
-    "test:finance": "node --import ./tests/register-ts.mjs --test tests/finance.test.mjs"
+    "test:finance": "node --import ./tests/register-ts.mjs --test tests/finance.test.mjs",
+    "test:ai": "node --import ./tests/register-ts.mjs --test tests/ai.test.mjs",
+    "dev:api": "npx wrangler dev --port 8787",
+    "eval:ai": "node --import ./tests/register-ts.mjs eval/run.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

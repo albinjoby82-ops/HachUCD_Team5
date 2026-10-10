@@ -1,0 +1,4 @@
+# Copy to .dev.vars (gitignored) for `npm run dev:api`. Never commit the real key.
+OPENROUTER_API_KEY=sk-or-...
+MODEL_FAST=REPLACE_ME
+MODEL_STRONG=REPLACE_ME

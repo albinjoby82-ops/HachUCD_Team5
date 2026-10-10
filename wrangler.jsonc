@@ -1,6 +1,18 @@
 {
   "name": "hachucd-team5",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-09-01",
   "build": { "command": "npm run build" },
-  "assets": { "directory": "./dist", "not_found_handling": "single-page-application" }
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    // Only /api/* runs the Worker; everything else is served straight from the static assets.
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    // Exact model IDs from https://openrouter.ai/models (append :free for the free tier).
+    // Set to REPLACE_ME to switch AI off: the app then falls back to rules and shows a banner.
+    "MODEL_FAST": "openrouter/free",
+    "MODEL_STRONG": "openrouter/free"
+  }
 }

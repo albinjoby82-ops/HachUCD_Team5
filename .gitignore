@@ -1,9 +1,10 @@
 node_modules
 inventory-desktop.png
 inventory-mobile.png
+finance-*.png
 dist
 .claude
 .wrangler
+.dev.vars
 .env
-node_modules/
-finance-*.png
+eval/.cache
