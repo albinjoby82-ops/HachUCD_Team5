@@ -1,5 +1,5 @@
 {
-  "name": "hachucd-team5",
+  "name": "teamly",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-01",
   "build": { "command": "npm run build" },
@@ -10,6 +10,8 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
+    "APP_URL": "https://teamly.albinjoby82.workers.dev",
+    "STRIPE_PRICE_ID": "price_1UP0OHJO2U2ZDInD40iYhkgq",
     // Exact model IDs from https://openrouter.ai/models (append :free for the free tier).
     // Set to REPLACE_ME to switch AI off: the app then falls back to rules and shows a banner.
     "MODEL_FAST": "openrouter/free",
