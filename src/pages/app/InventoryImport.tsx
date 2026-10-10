@@ -59,7 +59,7 @@ export function InventoryImport({ onClose, departments }: { onClose: () => void;
   return <Dialog label="Import inventory CSV" onClose={onClose} width={1100}>
     <div className="hstack" style={{ justifyContent: 'space-between' }}><div><div className="title20">Import inventory</div><div className="small muted">{org.name} · {drafts ? '3. Review and save' : source ? '2. Map and confirm' : '1. Choose a file'}</div></div><button className="btn btn-ghost" onClick={onClose}>Close</button></div>
     <p className="small muted">Saved in this browser only. CSV up to 2 MB / 2,000 records. Excel: export as UTF-8 CSV.</p>
-    {!drafts && <a className="small" href="./inventory-example.csv" download>Download a 25-item example CSV</a>}
+    {!drafts && <a className="small" href="./inventory-example.csv" download>Download a 25-item example CSV</a>}{!drafts && org.id === 'org-gaelforce' && <> · <a className="small" href="./gaelforce-inventory.csv" download>Download GaelForce workshop inventory</a></>}
     {!drafts && <>
       <div className="inventory-grid">
         <label className="field">Destination department<select className="input" value={department} onChange={e => { setDepartment(e.target.value); setConfirmed(false); }}>{departments.map(d => <option key={d}>{d}</option>)}</select></label>
