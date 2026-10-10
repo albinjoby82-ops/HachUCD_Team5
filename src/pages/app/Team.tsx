@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUI } from '../../lib/store';
-import { chain, departments, isOpen, nameOf, titleOf } from '../../lib/org';
+import { alsoIn, chain, departments, isOpen, nameOf, titleOf } from '../../lib/org';
 import { plural } from '../../lib/format';
 import { FlowChart } from '../../components/FlowChart';
 import { Avatar } from '../../components/ui';
@@ -39,7 +39,7 @@ export function Team() {
         <div className="card-head">Everyone</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 4 }}>
           {org.people.map(p => <button key={p.id} className="row" style={{ padding: '10px 12px' }} onClick={() => ui.set({ profileId: p.id })}>
-            <Avatar name={p.name} size={32} /><span className="grow"><span className="t">{p.name}{p.id === me ? ' (you)' : ''}</span><br /><span className="tiny muted">{titleOf(org, p.id)}{p.invited ? ' · invited' : ''}</span></span></button>)}
+            <Avatar name={p.name} size={32} /><span className="grow"><span className="t">{p.name}{p.id === me ? ' (you)' : ''}</span><br /><span className="tiny muted">{titleOf(org, p.id)}{alsoIn(org, p.id).length ? ' · also ' + alsoIn(org, p.id).join(', ') : ''}{p.invited ? ' · invited' : ''}</span></span></button>)}
         </div>
       </div>
     </div>

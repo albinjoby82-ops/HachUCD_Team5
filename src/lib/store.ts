@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Account, Borrow, Cluster, Org } from './types';
-import { DEMO_ORG, seedData } from './seed';
+import { DEMO_ORG, GAEL_ORG, seedData } from './seed';
 import { personById } from './org';
 
 interface Data { orgs: Org[]; clusters: Cluster[]; borrows: Borrow[] }
@@ -31,7 +31,21 @@ export const useStore = create<State>()(persist((set, get) => ({
   setViewAs: (orgId, pid) => set(s => ({ viewAs: { ...s.viewAs, [orgId]: pid } })),
   setAccount: a => set({ account: a }),
   reset: () => set({ ...seedData(), currentOrgId: DEMO_ORG, viewAs: { [DEMO_ORG]: 'tom' }, account: get().account }),
-}), { name: 'commons-demo-v1' }));
+}), {
+  name: 'commons-demo-v1',
+  version: 3,
+  // v2 added GaelForce UCD; v3 gave it its mock requests. Add any sample org a browser doesn't have yet,
+  // and refresh GaelForce only while it is still the untouched seed (no requests, no imported finances).
+  migrate: (persisted, version) => {
+    const state = persisted as { orgs?: Org[] } | null;
+    if (state?.orgs && version < 3) {
+      const seed = seedData().orgs, have = new Set(state.orgs.map(o => o.id));
+      state.orgs = state.orgs.map(o => (o.id === GAEL_ORG && !o.requests.length && !o.financeTransactions?.length ? seed.find(x => x.id === GAEL_ORG) || o : o));
+      state.orgs = [...state.orgs, ...seed.filter(o => !have.has(o.id))];
+    }
+    return persisted as State;
+  },
+}));
 
 export const useOrg = () => {
   const orgs = useStore(s => s.orgs), id = useStore(s => s.currentOrgId);

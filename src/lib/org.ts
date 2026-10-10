@@ -68,6 +68,12 @@ export function groupName(s: Structure, node: OrgNode) {
   return node.dept || deptOfNode(s, node) || node.title;
 }
 
+/** Departments/teams a person also works in, besides the box that routes their requests. */
+export function alsoIn(s: Structure, pid: string | null | undefined): string[] {
+  const p = personById(s, pid);
+  return (p?.alsoIn || []).map(id => nodeById(s, id)).filter((n): n is OrgNode => !!n).map(n => n.dept || groupName(s, n));
+}
+
 export function titleOf(s: Structure, pid: string | null | undefined) {
   const p = personById(s, pid); if (!p) return '';
   const n = nodeById(s, p.nodeId); if (!n) return '';

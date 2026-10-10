@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import type { OrgNode, Person } from '../lib/types';
 import {
   type Structure, chain, childrenOf, deptOfNode, deptRootOf, descendantIds, groupName, leadsOf, membersOf,
-  nodeById, personById, routeNodes, titleOf, DEPT_PALETTE, TOP_COLOR,
+  nodeById, personById, routeNodes, titleOf, alsoIn as alsoDepts, DEPT_PALETTE, TOP_COLOR,
 } from '../lib/org';
 import { NODE_H, NODE_W, bounds, layoutTree } from '../lib/layout';
 import { uid } from '../lib/format';
@@ -204,6 +204,7 @@ export function FlowChart({ value, onChange, height = 560, tools, fitKey, meId, 
         </svg>
         {S.nodes.map(n => {
           const p = pos(n), leads = leadsOf(S, n.id), mems = membersOf(S, n.id), color = colorOf(n);
+          const also = S.people.filter(x => x.alsoIn?.includes(n.id)), memSlots = also.length ? 2 : 3;
           const dept = deptOfNode(S, n);
           const cls = ['flow-node', editable && 'editable', dragPos?.id === n.id ? 'dragging' : 'anim', sel === n.id && 'sel', (dropOn === n.id || personDrop === n.id) && 'drop', routeSet.has(n.id) && 'route', trace && !routeSet.has(n.id) && 'dim'].filter(Boolean).join(' ');
           return (
@@ -224,12 +225,16 @@ export function FlowChart({ value, onChange, height = 560, tools, fitKey, meId, 
                   </> : <span className="nolead">{editable ? 'Drop someone here to lead' : 'No one yet'}</span>}
                 </div>
                 <div className="mems">
-                  {mems.slice(0, 3).map(m => (
+                  {mems.slice(0, memSlots).map(m => (
                     <span key={m.id} className={'pchip' + (m.invited ? ' inv' : '') + (m.id === trace ? ' hl' : '')} draggable={editable} onDragStart={dragPerson(m.id)}
                       onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onOpenPerson ? onOpenPerson(m.id) : setTrace(m.id); }} title={m.name}>{m.name}</span>
                   ))}
-                  {mems.length > 3 && <span className="pchip" style={{ cursor: 'default' }}>+{mems.length - 3}</span>}
-                  {!mems.length && !childrenOf(S, n.id).length && <span className="tiny" style={{ color: '#b3abc9' }}>No members yet</span>}
+                  {also.slice(0, 1).map(a => (
+                    <span key={'also' + a.id} className="pchip also" onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onOpenPerson ? onOpenPerson(a.id) : setTrace(a.id); }}
+                      title={`${a.name} also works here (requests route through ${nodeById(S, a.nodeId)?.title})`}>{a.name} ↗</span>
+                  ))}
+                  {mems.length - memSlots + also.length - 1 > 0 && <span className="pchip" style={{ cursor: 'default' }}>+{Math.max(0, mems.length - memSlots) + Math.max(0, also.length - 1)}</span>}
+                  {!mems.length && !also.length && !childrenOf(S, n.id).length && <span className="tiny" style={{ color: '#b3abc9' }}>No members yet</span>}
                 </div>
               </div>
               {editable && <button className="flow-add" title="Add a role below" aria-label={'Add a role below ' + n.title} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); addChild(n.id); }}>+</button>}
@@ -349,6 +354,7 @@ function Inspector({ S, node, editable, meId, onClose, patchNode, reparent, remo
             </>}
           </div>
         ))}
+        {S.people.filter(x => x.alsoIn?.includes(node.id)).map(a => <div key={'also' + a.id} className="small muted" style={{ padding: '2px 8px' }}>↗ {a.name} also works here · routes via {nodeById(S, a.nodeId)?.title}</div>)}
         {!people.length && <div className="small muted">Nobody yet.</div>}
         {editable && <div className="hstack" style={{ flexWrap: 'nowrap', gap: 6 }}>
           <input className="input" placeholder="Add a person by name" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} style={{ minHeight: 38 }} />

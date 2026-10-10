@@ -24,6 +24,8 @@ export interface Person {
   nodeId: string;
   lead: boolean;
   invited?: boolean;
+  /** Also works in these boxes (display only). Approvals always follow nodeId. */
+  alsoIn?: string[];
 }
 
 export interface TrailEvent { who: string; what: string; at: number; note?: string }
@@ -159,6 +161,8 @@ export interface Org {
   seq: number;
   logoColor: string;
   createdAt: number;
+  /** When the season started; used to show "Week N". */
+  seasonStart?: number;
   demo?: boolean;
 }
 

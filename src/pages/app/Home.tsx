@@ -71,7 +71,7 @@ export function Home() {
         <span className="s1" /><span className="s2" /><span className="s3" />
         <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
           <div className="hi">Hi {meName}</div>
-          <div style={{ fontSize: 17, fontWeight: 600, opacity: .92, marginTop: 6 }}>{waiting.length ? plural(waiting.length, 'request') + (waiting.length === 1 ? ' needs' : ' need') + ' your decision.' : titleOf(org, me) + ' · ' + org.name}</div>
+          <div style={{ fontSize: 17, fontWeight: 600, opacity: .92, marginTop: 6 }}>{waiting.length ? plural(waiting.length, 'request') + (waiting.length === 1 ? ' needs' : ' need') + ' your decision.' : titleOf(org, me) + ' · ' + org.name + (org.seasonStart ? ' · Week ' + (Math.floor((Date.now() - org.seasonStart) / (7 * 86_400_000)) + 1) : '')}</div>
         </div>
         {mods.finance && <button className="btn btn-white" style={{ position: 'relative', padding: '12px 22px' }} onClick={() => go('/app/new')}>+ New request</button>}
       </section>

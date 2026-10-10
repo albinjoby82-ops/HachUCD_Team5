@@ -256,3 +256,6 @@ table.tx td { padding: 6px 10px; border-top: 1px solid var(--border); }
 .ai-badge.review::before { content: ""; }
 .ai-badge.ok { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
 .ai-badge.ok::before { content: ""; }
+
+/* A person shown in a second department; requests still route through their own box */
+.pchip.also { background: #fff; border: 1.5px dashed #b9a8f5; cursor: pointer; color: var(--p800); }
