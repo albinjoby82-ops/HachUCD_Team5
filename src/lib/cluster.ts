@@ -23,7 +23,7 @@ export function approversFor(org: Org, item: Item) {
   return { leads, tops, all: [...leads, ...tops] };
 }
 export const canLend = (org: Org, item: Item, me: string) => approversFor(org, item).all.includes(me);
-export const canManageItem = (org: Org, item: Item, me: string) => {
+export const canManageItem = (org: Org, item: Pick<Item, 'dept'>, me: string) => {
   if (isTop(org, me)) return true;
   const p = org.people.find(x => x.id === me); if (!p?.lead) return false;
   const root = deptRootOf(org, org.nodes.find(n => n.id === p.nodeId));

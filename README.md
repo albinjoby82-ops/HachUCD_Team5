@@ -25,7 +25,7 @@ Open http://localhost:5173. Everything runs offline. All data lives in this brow
 | **Mark bought** | Upload or snap a receipt photo → OCR fields with confidence (editable) → add to inventory, optionally shared with the cluster |
 | **Finance** | Spend vs budget per department, a summary templated from computed totals, flags, budget split |
 | **Bank import** | A real CSV parser (upload your own or use the 150-row sample). Columns are auto-mapped and you can change them. Known payees match by rule; unclear lines get a suggestion with confidence, and anything under 80% goes to review. Flags: duplicate, refund, unusual amount, no matching request, missing receipt. Bank lines are matched to approved requests. |
-| **Inventory** | Filters, take/return, condition, share with cluster, add by hand |
+| **Inventory** | CSV upload, mapping, editable review, validation, duplicate protection, import history; search, cost/supplier dashboard, manual add/edit, take/return and cluster sharing. Local browser persistence only. See [implementation notes](INVENTORY_IMPLEMENTATION.md). |
 | **Cluster** | Cross-org lending between real workspaces (Ironclad, Volt FS, SkyLab, plus any team you register). The owning department lead approves incoming requests. Overdue tracking. |
 | **Multi-org** | The org switcher keeps workspaces separate. You can switch into Volt FS or SkyLab too. |
 

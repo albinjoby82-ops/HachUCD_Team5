@@ -60,7 +60,7 @@ export function Shell({ page }: { page: string }) {
       case 'requests': return <Requests />;
       case 'new': return <NewRequest />;
       case 'finance': return <Finance />;
-      case 'inventory': return <Inventory />;
+      case 'inventory': return <Inventory key={org.id + me} />;
       case 'cluster': return <ClusterPage />;
       case 'team': return <Team />;
       case 'settings': return <Settings />;

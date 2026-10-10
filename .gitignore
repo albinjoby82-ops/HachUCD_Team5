@@ -1,4 +1,6 @@
 node_modules
+inventory-desktop.png
+inventory-mobile.png
 dist
 .claude
 .wrangler

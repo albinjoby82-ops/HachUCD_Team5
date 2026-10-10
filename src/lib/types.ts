@@ -60,6 +60,29 @@ export interface Item {
   keeperId?: string;
   due?: number;
   shared?: boolean;
+  unitCost?: string | null;
+  currency?: Currency;
+  unit?: string;
+  supplier?: string | null;
+  createdAt?: number;
+  createdBy?: string;
+  updatedAt?: number;
+  updatedBy?: string;
+  importId?: string;
+  sourceRow?: number;
+}
+
+export interface InventoryImportRecord {
+  id: string;
+  fingerprint: string;
+  file: string;
+  at: number;
+  by: string;
+  read: number;
+  saved: number;
+  excluded: number;
+  department: string;
+  settings: { costBasis: string; currency: Currency; unit: string; numberFormat: string };
 }
 
 export interface ImportRecord {
@@ -94,6 +117,7 @@ export interface Org {
   tags: string[];
   clusterId: string | null;
   imports: ImportRecord[];
+  inventoryImports?: InventoryImportRecord[];
   seq: number;
   logoColor: string;
   createdAt: number;

@@ -210,6 +210,13 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .typebtn { padding: 14px 12px; border-radius: 16px; border: 2px solid transparent; background: var(--soft); cursor: pointer; text-align: left; transition: background .2s; display: flex; flex-direction: column; gap: 2px; }
 .typebtn.on { border-color: var(--p-h); background: var(--p100); }
 
+.inventory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px; }
+.inventory-table { overflow: auto; max-height: 48vh; border: 1px solid var(--border); border-radius: 12px; }
+.inventory-preview { min-width: 1080px; }
+.inventory-preview .input { min-width: 90px; padding: 8px; font-size: 13px; }
+.inventory-preview td:last-child { min-width: 220px; }
+.inventory-excluded { opacity: .55; }
+.inventory-warning { padding: 10px 14px; background: #fff4d6; color: #694c00; border-radius: 12px; font-size: 13px; }
 table.tx { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.tx th { text-align: left; color: var(--muted); font-weight: 700; padding: 6px 10px; position: sticky; top: 0; background: #fff; }
 table.tx td { padding: 6px 10px; border-top: 1px solid var(--border); }

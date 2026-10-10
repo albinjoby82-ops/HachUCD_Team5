@@ -67,3 +67,27 @@ export const useUI = create<UI>()(set => ({
   say: msg => { set({ toast: msg }); clearTimeout(toastTimer); toastTimer = setTimeout(() => set({ toast: '' }), 3200); },
 }));
 export const say = (m: string) => useUI.getState().say(m);
+
+/** Inventory transactions are all-or-nothing in this local demo, including storage failures. */
+export function saveInventory(orgId: string, change: (org: Org) => void) {
+  const before = useStore.getState();
+  const next = structuredClone(before.orgs);
+  const org = next.find(o => o.id === orgId);
+  if (!org) throw new Error('This organisation is no longer available.');
+  change(org);
+  // Persist before publishing to subscribers: a full/disabled store must not look like success.
+  const name = useStore.persist.getOptions().name;
+  if (!name) throw new Error('Inventory storage is not configured.');
+  const state = { ...before, orgs: next };
+  const payload = JSON.stringify({ state, version: useStore.persist.getOptions().version ?? 0 });
+  try { localStorage.setItem(name, payload); }
+  catch { throw new Error('Could not save in this browser. Storage may be full or disabled. Your preview is retained; free space and retry.'); }
+  try { useStore.setState({ orgs: next }); }
+  catch (error) {
+    // Zustand also persists its update. If the verified payload is durable, the commit succeeded.
+    if (localStorage.getItem(name) !== payload) {
+      try { useStore.setState({ orgs: before.orgs }); } catch { /* memory restored before middleware write */ }
+      throw error;
+    }
+  }
+}

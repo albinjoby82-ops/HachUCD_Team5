@@ -1,0 +1,26 @@
+Item name,Unit cost,Quantity,Supplier,Currency,Unit
+DC motor,14.00,12,Example Robotics,EUR,piece
+Servo motor,8.50,10,Example Robotics,EUR,piece
+Stepper motor,19.00,4,Example Robotics,EUR,piece
+Motor driver,6.20,8,Example Electronics,EUR,piece
+Arduino compatible board,22.00,5,Example Electronics,EUR,piece
+Raspberry Pi,85.00,2,Example Electronics,EUR,piece
+Ultrasonic sensor,3.50,10,Example Electronics,EUR,piece
+Infrared sensor,2.00,12,Example Electronics,EUR,piece
+Wheel encoder,9.00,4,Example Robotics,EUR,piece
+Breadboard,4.50,6,Example Electronics,EUR,piece
+Jumper wires,5.00,8,Example Electronics,EUR,set
+USB cable,3.00,10,Example Electronics,EUR,piece
+Battery holder,2.20,6,Example Electronics,EUR,piece
+Rechargeable battery,12.00,8,Example Electronics,EUR,piece
+Battery charger,18.00,2,Example Electronics,EUR,piece
+Aluminium plate,24.00,3,Example Materials,EUR,piece
+M3 bolts,0.08,200,Example Hardware,EUR,piece
+M3 nuts,0.04,200,Example Hardware,EUR,piece
+M3 washers,0.02,200,Example Hardware,EUR,piece
+Robot wheel,6.00,8,Example Robotics,EUR,piece
+Ball caster,4.00,4,Example Robotics,EUR,piece
+PLA filament,20.00,2.5,Example Materials,EUR,kg
+"Cable, red",0.75,12.5,"Example Parts, Ltd",EUR,metre
+Donated toolbox,0.00,1,,EUR,piece
+Spare connectors,,0,,EUR,piece
