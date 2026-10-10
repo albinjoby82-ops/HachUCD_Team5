@@ -31,6 +31,34 @@ export function Landing() {
             <button className="btn btn-ghost" onClick={demo}>Open the live demo →</button>
           </div>
           <div className="small muted">For student engineering teams, societies and early-stage startups.</div>
+          <div className="card pad" style={{ marginTop: 12, maxWidth: 420 }}>
+  <h2>Teamly Subscription</h2>
+  <h3>€9.99 / month</h3>
+  <p>One monthly subscription for your entire organisation.</p>
+
+  <button
+    className="btn btn-primary"
+    onClick={async () => {
+      try {
+        const response = await fetch(
+          'http://localhost:3000/api/create-checkout-session',
+          { method: 'POST' }
+        );
+
+        if (!response.ok) {
+          throw new Error('Could not start checkout');
+        }
+
+        const data = await response.json();
+        window.location.href = data.url;
+      } catch (error) {
+        alert('Unable to open Stripe Checkout. Please try again.');
+      }
+    }}
+  >
+    Subscribe for €9.99/month
+  </button>
+</div>
         </section>
         <section className="g3" style={{ gap: 20 }}>
           {PILLARS.map(p => (
