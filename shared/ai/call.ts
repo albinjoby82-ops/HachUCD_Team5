@@ -61,7 +61,7 @@ export async function callOpenRouter<I, O>(o: CallOptions<I, O>): Promise<CallRe
   } catch { return { ok: false, error: 'upstream_timeout' }; }
   if (!res.ok) return { ok: false, error: 'upstream_error', status: res.status };
   let data: any;
-  try { data = await res.json(); } catch { return { ok: false, error: 'upstream_error', status: res.status }; }
+  try { data = await res.json(); } catch { return { ok: false, error: 'bad_model_json' }; } // 200 with a cut-off body: retryable
   const text = messageText(data?.choices?.[0]?.message);
   if (!text) return { ok: false, error: 'bad_model_json' };
   let parsed: unknown;
