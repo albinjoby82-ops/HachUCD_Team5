@@ -15,6 +15,19 @@ export function extractJson(text: string): unknown {
   throw new Error('no json');
 }
 
+/**
+ * Free routed models answer in different shapes: a plain string, an array of parts, or (reasoning
+ * models) an empty content with the answer only in `reasoning`. Take whichever has JSON in it.
+ */
+export function messageText(m: any): string {
+  if (!m) return '';
+  const parts: string[] = [];
+  if (typeof m.content === 'string') parts.push(m.content);
+  else if (Array.isArray(m.content)) parts.push(m.content.map((p: any) => (typeof p === 'string' ? p : p?.text ?? '')).join(''));
+  if (typeof m.reasoning === 'string') parts.push(m.reasoning);
+  return parts.find(t => t.includes('{')) ?? parts.find(t => t.trim()) ?? '';
+}
+
 export interface CallOptions<I, O> {
   apiKey: string;
   model: string;
@@ -49,8 +62,8 @@ export async function callOpenRouter<I, O>(o: CallOptions<I, O>): Promise<CallRe
   if (!res.ok) return { ok: false, error: 'upstream_error', status: res.status };
   let data: any;
   try { data = await res.json(); } catch { return { ok: false, error: 'upstream_error', status: res.status }; }
-  const text: unknown = data?.choices?.[0]?.message?.content;
-  if (typeof text !== 'string') return { ok: false, error: 'bad_model_json' };
+  const text = messageText(data?.choices?.[0]?.message);
+  if (!text) return { ok: false, error: 'bad_model_json' };
   let parsed: unknown;
   try { parsed = extractJson(text); } catch { return { ok: false, error: 'bad_model_json' }; }
   const out = o.spec.output(parsed);

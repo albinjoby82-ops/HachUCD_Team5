@@ -53,10 +53,13 @@ export default {
     const model = tier === 'strong' ? env.MODEL_STRONG : env.MODEL_FAST;
     if (!env.OPENROUTER_API_KEY || placeholder(model)) return json({ error: 'not_configured' }, 503);
 
-    const out = await callOpenRouter({
-      apiKey: env.OPENROUTER_API_KEY, model: model!, referer: url.origin,
-      spec: spec as never, payload: (spec.sanitize as (i: unknown) => unknown)(checked.data),
-    });
+    // The free router picks a different model per call and some return unusable output, so
+    // retry here (cheap) before bothering the browser. Quota, auth and timeout errors are not retried.
+    const payload = (spec.sanitize as (i: unknown) => unknown)(checked.data);
+    let out = await callOpenRouter({ apiKey: env.OPENROUTER_API_KEY, model: model!, referer: url.origin, spec: spec as never, payload, timeoutMs: 20_000 });
+    for (let attempt = 1; attempt < 3 && !out.ok && (out.error === 'bad_model_json' || out.error === 'bad_model_shape'); attempt++) {
+      out = await callOpenRouter({ apiKey: env.OPENROUTER_API_KEY, model: model!, referer: url.origin, spec: spec as never, payload, timeoutMs: 20_000 });
+    }
     if (!out.ok) {
       // Never forward upstream bodies. 402/429 become a plain upstream_error the client falls back from.
       const status = out.error === 'upstream_timeout' ? 504 : 502;

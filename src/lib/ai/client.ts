@@ -13,7 +13,7 @@ const ENDPOINT = '/api/ai';
 async function once(task: TaskName, payload: unknown, tier: 'fast' | 'strong'): Promise<AiReply<unknown> & { retry?: boolean }> {
   let res: Response;
   try {
-    res = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task, payload, tier }), signal: AbortSignal.timeout(35_000) });
+    res = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task, payload, tier }), signal: AbortSignal.timeout(75_000) });
   } catch { return { ok: false, error: 'unreachable' }; }
   let body: any = null;
   try { body = await res.json(); } catch { /* not JSON: e.g. the site is served without the Worker */ }

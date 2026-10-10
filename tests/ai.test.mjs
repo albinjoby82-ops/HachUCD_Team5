@@ -173,3 +173,28 @@ test('classification: respects a department the user already supplied and large 
     assert.equal(run.meta[2].review, false);
   } finally { restore(); }
 });
+
+test('models that answer in odd shapes are still understood', async () => {
+  const { messageText } = await import('../shared/ai/call.ts');
+  assert.equal(messageText({ content: '{"a":1}' }), '{"a":1}');
+  assert.equal(messageText({ content: [{ type: 'text', text: '{"a":2}' }] }), '{"a":2}');
+  assert.equal(messageText({ content: '', reasoning: 'thinking... {"a":3}' }), 'thinking... {"a":3}');
+  assert.equal(messageText({ content: null }), '');
+});
+
+test('worker retries unusable model output before giving up', async () => {
+  const env = { OPENROUTER_API_KEY: 'k', MODEL_FAST: 'm', MODEL_STRONG: 'm' };
+  const payload = { headers: ['Date', 'Details'], sampleRows: [['01/01/2026', 'RS']] };
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return calls < 3 ? json({ choices: [{ message: { content: 'sorry, no' } }] }) : json({ model: 'm', choices: [{ message: { content: '{"mapping":{"date":"Date","description":"Details"},"confidence":0.9,"notes":""}' } }] }); };
+  try {
+    const res = await worker.fetch(new Request('https://x.example/api/ai', { method: 'POST', body: JSON.stringify({ task: 'map_columns', payload }) }), env);
+    assert.equal(res.status, 200);
+    assert.equal(calls, 3);
+    calls = -10; // always bad from here on: must stop, not loop forever
+    globalThis.fetch = async () => { calls++; return json({ choices: [{ message: { content: 'nope' } }] }); };
+    const bad = await worker.fetch(new Request('https://x.example/api/ai', { method: 'POST', body: JSON.stringify({ task: 'map_columns', payload }) }), env);
+    assert.equal(bad.status, 502);
+    assert.equal(calls, -7);
+  } finally { restore(); }
+});
